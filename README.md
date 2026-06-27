@@ -24,7 +24,6 @@
     <a href="#contributing">Contributing</a> ·
     <a href="#citation">Citation</a>
   </p>
-
   <br/>
 
   <img src="dasexplorer/icons/screenshot.png" alt="DAS Explorer main window" width="900"/>
