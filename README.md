@@ -8,7 +8,7 @@
   </p>
 
   <p>
-<a href="https://github.com/sermomon/DASexplorer/releases"><img src="https://img.shields.io/badge/release-v1.0.0-orange" alt="Latest Release"/></a>
+<a href="https://github.com/sermomon/DASexplorer/releases"><img src="https://img.shields.io/badge/release-v1.0.0-red" alt="Latest Release"/></a>
     <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+"/></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/></a>
     <a href="https://doi.org/10.xxxx/joss.xxxxx"><img src="https://img.shields.io/badge/JOSS-paper-orange" alt="JOSS Paper"/></a>
