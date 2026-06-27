@@ -35,14 +35,14 @@
 
 ## Overview
 
-**DASexplorer** is an open-source desktop application built for researchers working with Distributed Acoustic Sensing (DAS) data. It provides an integrated environment for loading, visualising, filtering, and annotating DAS recordings from multiple interrogator systems — without requiring any prior programming knowledge.
+**DASexplorer** is an open-source desktop application built for researchers working with Distributed Acoustic Sensing (DAS) data. It provides an integrated environment for loading, visualising, filtering, and annotating DAS recordings from multiple interrogator systems, without requiring any prior programming knowledge.
 
 DASexplorer was designed for efficient interactive navigation of large DAS datasets.DASexplorer was designed for efficient interactive navigation of large DAS datasets. Built on PyQt5 and pyqtgraph, it uses spatial decimation, parameter-based caching and smart rendering strategies to handle long acquisitions with minimal memory overhead. The application is interrogator-agnostic: a profile-based configuration system maps each acquisition system to its reader, file extensions and default visualisation parameters, making it straightforward to add support for new instruments.
 
 Key design principles:
 
 - **No-code** — the full analysis workflow is accessible through an intuitive GUI.
-- **Multi-interrogator** — natively supports HDAS 2.5 (Aragón Photonics) and OptaSense file formats; extensible to new systems.
+- **Multi-interrogator** — natively supports HDAS 2.5 (Aragón Photonics), OptaSense (Luna Innovations) and OptoDAS (ASN/ Alcatel Subsea Networks) file formats; extensible to new systems.
 - **Research-ready** — exports data and annotations in formats directly usable by machine learning and bioacoustic analysis pipelines (NPZ, MAT, YOLO, COCO JSON, Raven Pro).
 
 ---
