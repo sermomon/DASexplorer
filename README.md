@@ -37,7 +37,7 @@
 
 **DAS Explorer** is an open-source desktop application built for researchers working with Distributed Acoustic Sensing (DAS) data. It provides an integrated environment for loading, visualising, filtering, and annotating DAS recordings from multiple interrogator systems — without requiring any prior programming knowledge.
 
-DAS Explorer was developed at the [Underwater Acoustics Group (IGIC)](https://igic.upv.es) of the [Universitat Politècnica de València (UPV)](https://www.upv.es), in the context of the **DAS-ALME project**, a collaboration between UPV, [Telefónica](https://www.telefonica.es) and [Aragón Photonics](https://aragonphotonics.com), aimed at passive monitoring of maritime traffic and fin whale (*Balaenoptera physalus*) vocalisations along the Almería–Melilla submarine fibre-optic cable.
+DASexplorer was designed for efficient interactive navigation of large DAS datasets.DASexplorer was designed for efficient interactive navigation of large DAS datasets. Built on PyQt5 and pyqtgraph, it uses spatial decimation, parameter-based caching and smart rendering strategies to handle long acquisitions with minimal memory overhead. The application is interrogator-agnostic: a profile-based configuration system maps each acquisition system to its reader, file extensions and default visualisation parameters, making it straightforward to add support for new instruments. Out of the box, DASexplorer reads HDAS 2.5, OptaSense and OptoDAS formats, preserving timestamps, channel distances and physical units from the original file metadata.
 
 Key design principles:
 
