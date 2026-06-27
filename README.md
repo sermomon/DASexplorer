@@ -285,8 +285,9 @@ git push origin feature/your-feature-name
 
 ¹ Instituto de Investigación para la Gestión Integrada de Zonas Costeras (IGIC-UPV), Universitat Politècnica de València, Gandia, Spain
 
-This work was supported by MAR.IA - Modelos de Inteligencia Artificial para el Análisis de Datos de Acústica Submarina (PAID-10-25) Financed by RRHH Universitat Politècnica de València. 
 ---
+
+This work was supported by MAR.IA - Modelos de Inteligencia Artificial para el Análisis de Datos de Acústica Submarina (PAID-10-25) Financed by RRHH Universitat Politècnica de València.
 
 ## Citation
 
