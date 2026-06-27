@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="dasexplorer/icons/icon_2.ico" alt="DASexplorer Logo" width="180"/>
+  <img src="dasexplorer/icons/icon_2.ico" alt="DASexplorer Logo" width="200"/>
 
   <h1></h1>
 
