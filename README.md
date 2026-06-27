@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="dasexplorer/icons/icon_2.ico" alt="DASexplorer Logo" width="220"/>
+  <img src="dasexplorer/icons/icon_2.ico" alt="DASexplorer Logo" width="180"/>
 
-  <h1>DAS Explorer</h1>
+  <h1></h1>
 
   <p>
     <strong>A desktop application for visualization, analysis and annotation of Distributed Acoustic Sensing (DAS) data</strong>
