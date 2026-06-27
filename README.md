@@ -281,19 +281,11 @@ git push origin feature/your-feature-name
 ## Authors and Affiliations
 
 **Sergio Morell-Monzó** ¹ [![ORCID](https://img.shields.io/badge/ORCID-0000--0002--XXXX--XXXX-green?logo=orcid)](https://orcid.org/0000-0002-XXXX-XXXX)
-— Lead developer, IGIC-UPV
+— Lead developer, sermomon@upv.es
 
-**Dídac Diego-Tortosa** ²
-— Collaborator, ICM-CSIC Barcelona
+¹ Instituto de Investigación para la Gestión Integrada de Zonas Costeras (IGIC-UPV), Universitat Politècnica de València, Gandia, Spain
 
-**Isabel Pérez-Arjona** ¹ · **Víctor Espinosa** ¹
-— Principal investigators, IGIC-UPV
-
-¹ Instituto de Investigación para la Gestión Integrada de Zonas Costeras (IGIC), Universitat Politècnica de València, Gandia, Spain
-² Institut de Ciències del Mar (ICM-CSIC), Barcelona, Spain
-
-This work was supported by the **DAS-ALME project**, in collaboration with [Telefónica](https://www.telefonica.es) and [Aragón Photonics](https://aragonphotonics.com).
-
+This work was supported by MAR.IA - Modelos de Inteligencia Artificial para el Análisis de Datos de Acústica Submarina (PAID-10-25) Financed by RRHH Universitat Politècnica de València. 
 ---
 
 ## Citation
