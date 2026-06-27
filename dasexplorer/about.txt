@@ -1,0 +1,8 @@
+DASexplorer v1.0.0
+
+Visualization, analysis and annotation tool for DAS data.
+
+Sergio Morell-Monzó (sermomon@upv.es)
+UAG-UPV Underwater Acoustics Group - Universitat Politècnica de València
+
+GitHub: https://github.com/sermomon/DASexplorer

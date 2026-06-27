@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CITATION.cff
+recursive-include dasexplorer/cfg *
+recursive-include dasexplorer/icons *
+include dasexplorer/about.txt

@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use DASexplorer in your research, please cite it as below."
+type: software
+title: "DASexplorer"
+abstract: >
+  DASexplorer is an open-source desktop application for visualisation,
+  analysis and annotation of Distributed Acoustic Sensing (DAS) data.
+  It supports multiple interrogator formats, profile-based configuration, 
+  multispectral RGB representation, F-K filtering, and annotations conversion
+  to YOLO, COCO and Raven Pro formats.
+authors:
+  - family-names: Morell-Monzó
+    given-names: Sergio
+    orcid: "https://orcid.org/0000-0001-8883-2618"
+    affiliation: "Institut d'Investigació per a la Gestío Integrada de Zones Costaneres (IGIC-UPV), Universitat Politècnica de València"
+    email: sermomon@upv.es
+version: "1.0.0"
+date-released: "2026-06-25"
+license: MIT
+repository-code: "https://github.com/sermomon/DASexplorer"
+doi: "10.5281/zenodo.0000000"
+keywords:
+  - distributed acoustic sensing
+  - DAS
+  - fiber optic sensing
+  - underwater acoustics
+  - marine bioacoustics
+  - annotation
+  - visualization
+  - seismology
+preferred-citation:
+  type: software
+  title: "DASexplorer: Visualisation, analysis and annotation tool for Distributed Acoustic Sensing data"
+  authors:
+    - family-names: Morell-Monzó
+      given-names: Sergio
+  version: "1.0.0"
+  year: 2026
+  doi: "10.5281/zenodo.0000000"
+  url: "https://github.com/sermomon/DASexplorer"
