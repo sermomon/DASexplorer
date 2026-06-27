@@ -211,11 +211,11 @@ DASExplorer/
 │   ├── icon_2.ico             # Taskbar icon
 │   └── logo.png               # Project logo
 ├── core/
-│   ├── readers.py             # File I/O (HDAS, OptaSense, NPZ, MAT)
+│   ├── readers.py             # File I/O (HDAS, OptaSense, OptoDAS, ...)
 │   ├── annotations.py         # Annotation data model and CSV I/O
 │   ├── annotation_export.py   # YOLO / COCO / Raven exporters
 │   ├── analysis.py            # Signal processing (FFT, spectrogram, F-K)
-│   ├── rgb.py                 # MSR-DAS composite computation
+│   ├── rgb.py                 # RGB composite computation
 │   ├── data_model.py          # DASDataset dataclass
 │   └── config.py              # Configuration loader
 └── gui/
