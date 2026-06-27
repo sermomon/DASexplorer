@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="icons/logo.png" alt="DAS Explorer Logo" width="220"/>
+  <img src="dasexplorer/icons/logo.png" alt="DASexplorer Logo" width="220"/>
 
   <h1>DAS Explorer</h1>
 
@@ -8,7 +8,7 @@
   </p>
 
   <p>
-    <a href="https://github.com/IGIC-UPV/DASExplorer/releases"><img src="https://img.shields.io/github/v/release/IGIC-UPV/DASExplorer?color=orange&label=release" alt="Latest Release"/></a>
+    <a href="https://github.com/sermomon/DASExplorer/releases"><img src="https://img.shields.io/github/v/release/sermomon/DASExplorer?color=orange&label=release" alt="Latest Release"/></a>
     <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+"/></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/></a>
     <a href="https://doi.org/10.xxxx/joss.xxxxx"><img src="https://img.shields.io/badge/JOSS-paper-orange" alt="JOSS Paper"/></a>
