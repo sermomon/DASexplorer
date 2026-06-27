@@ -27,7 +27,7 @@
 
   <br/>
 
-  <img src="docs/screenshot_main.png" alt="DAS Explorer main window" width="900"/>
+  <img src="dasexplorer/icons/screenshot.png" alt="DAS Explorer main window" width="900"/>
 
 </div>
 
