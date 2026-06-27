@@ -41,9 +41,9 @@ dependencies = [
 dev = ["build", "twine", "pytest"]
 
 [project.urls]
-Homepage = "https://github.com/IGIC-UPV/dasexplorer"
-Repository = "https://github.com/IGIC-UPV/dasexplorer"
-"Bug Tracker" = "https://github.com/IGIC-UPV/dasexplorer/issues"
+Homepage = "https://github.com/sermomon/DASexplorer"
+Repository = "https://github.com/sermomon/DASexplorer"
+"Bug Tracker" = "https://github.com/sermomon/DASexplorer/issues"
 
 [project.gui-scripts]
 dasexplorer = "dasexplorer.__main__:main"
