@@ -4,7 +4,7 @@
   <h1></h1>
 
   <p>
-    <strong>A desktop application for visualization, analysis and annotation of Distributed Acoustic Sensing (DAS) data</strong>
+    <strong>A desktop application for visualization, analysis and annotation of Distributed Acoustic Sensing data</strong>
   </p>
 
   <p>
