@@ -280,7 +280,7 @@ git push origin feature/your-feature-name
 
 ## Authors and Affiliations
 
-**Sergio Morell-Monzó** ¹ [![ORCID](https://img.shields.io/badge/ORCID-0000--0002--XXXX--XXXX-green?logo=orcid)](https://orcid.org/0000-0002-XXXX-XXXX)
+**Sergio Morell-Monzó** ¹ [![ORCID](https://img.shields.io/badge/ORCID-0000--0002--8883--2618-green?logo=orcid)](https://orcid.org/0000-0001-8883-2618)
 — Lead developer, sermomon@upv.es
 
 ¹ Instituto de Investigación para la Gestión Integrada de Zonas Costeras (IGIC-UPV), Universitat Politècnica de València, Gandia, Spain
@@ -290,7 +290,7 @@ This work was supported by MAR.IA - Modelos de Inteligencia Artificial para el A
 
 ## Citation
 
-If you use DAS Explorer in your research, please cite:
+If you use DASexplorer in your research, please cite:
 
 ```bibtex
 @article{morellmonzo2025dasexplorer,
