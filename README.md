@@ -203,7 +203,7 @@ das-explorer
 ```
 DASExplorer/
 ├── main.py                    # Entry point
-├── version.py
+├── version.py                 # Version file
 ├── cfg/
 │   └── config.json            # User-editable configuration
 ├── icons/
