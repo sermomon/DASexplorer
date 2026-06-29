@@ -53,7 +53,7 @@ If you use DASexplorer in your research, please cite:
 @software{morellmonzo2026dasexplorer,
   author       = {Morell-Monzó, Sergio},
   title        = {DASexplorer},
-  version      = {1.0.0},
+  version      = {1.0},
   year         = {2026},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.21032550},
