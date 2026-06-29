@@ -45,3 +45,21 @@ Key design principles:
 - **Research-ready** — exports data and annotations in formats directly usable by machine learning and bioacoustic analysis pipelines (NPZ, MAT, YOLO, COCO JSON, Raven Pro).
 
 ---
+
+## Citation
+
+If you use DASexplorer in your research, please cite:
+
+```bibtex
+@software{morellmonzo2026dasexplorer,
+  author       = {Morell-Monzó, Sergio},
+  title        = {DASexplorer},
+  version      = {1.0.0},
+  year         = {2026},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.21032550},
+  url          = {https://doi.org/10.5281/zenodo.21032550}
+}
+```
+
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21032550-blue)](https://doi.org/10.5281/zenodo.21032550)
