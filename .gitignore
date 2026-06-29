@@ -1,14 +1,29 @@
+# Python cache files
 __pycache__/
 dasexplorer/__pycache__
 *.py[cod]
+
+# Compiled extensions
 *.so
+
+# Package build and distribution
 *.egg-info/
 dist/
 build/
+
+# Local DAS data directories (not shared)
 dasexplorer/data/hdas25
 dasexplorer/data/optasence
 dasexplorer/data/optodas
 dasexplorer/data/silixa
+
+# Virtual environments
 .venv/
 venv/
+
+# macOS metadata
 .DS_Store
+
+# Exception: include APL reader binaries (required for HDAS 2.5 support)
+!dasexplorer/tools/apl/*.pyd
+!dasexplorer/tools/apl/*.so
