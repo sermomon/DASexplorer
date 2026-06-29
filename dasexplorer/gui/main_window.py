@@ -45,7 +45,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"DASexplorer v{__version__}")
+        #self.setWindowTitle(f"DASexplorer v{__version__}")
+        self.setWindowTitle(f"DASexplorer")
         self.resize(1400, 800)
 
         # Window icon (title bar, Alt+Tab) — distinct from the taskbar icon
