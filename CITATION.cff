@@ -15,7 +15,7 @@ authors:
     affiliation: "Institut d'Investigació per a la Gestío Integrada de Zones Costaneres (IGIC-UPV), Universitat Politècnica de València"
     email: sermomon@upv.es
 version: "1.0.0"
-date-released: "2026-06-25"
+date-released: "2026-06-29"
 license: GNU General Public License v3
 repository-code: "https://github.com/sermomon/DASexplorer"
 doi: "10.5281/zenodo.21032550"
