@@ -6,3 +6,5 @@ Sergio Morell-Monzó (sermomon@upv.es)
 UAG-UPV Underwater Acoustics Group - Universitat Politècnica de València
 
 GitHub: https://github.com/sermomon/DASexplorer
+
+GNU GPL-3.0-or-later
