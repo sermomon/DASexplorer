@@ -18,7 +18,7 @@ version: "1.0.0"
 date-released: "2026-06-25"
 license: MIT
 repository-code: "https://github.com/sermomon/DASexplorer"
-doi: "10.5281/zenodo.0000000"
+doi: "10.5281/zenodo.21032550"
 keywords:
   - distributed acoustic sensing
   - DAS
@@ -36,5 +36,5 @@ preferred-citation:
       given-names: Sergio
   version: "1.0.0"
   year: 2026
-  doi: "10.5281/zenodo.0000000"
+  doi: "10.5281/zenodo.21032550"
   url: "https://github.com/sermomon/DASexplorer"
