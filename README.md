@@ -44,7 +44,6 @@ Key design principles:
 - **Multi-interrogator** — natively supports HDAS 2.5 (Aragón Photonics), OptaSense (Luna Innovations) and OptoDAS (ASN/ Alcatel Subsea Networks) file formats; extensible to new systems.
 - **Research-ready** — exports data and annotations in formats directly usable by machine learning and bioacoustic analysis pipelines (NPZ, MAT, YOLO, COCO JSON, Raven Pro).
 
----
 
 ## Citation
 
