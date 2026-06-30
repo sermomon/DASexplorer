@@ -1,4 +1,4 @@
-DASexplorer v1.0.0
+DASexplorer v1.0
 
 Visualization, analysis and annotation tool for DAS data.
 
