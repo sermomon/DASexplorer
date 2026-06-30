@@ -31,7 +31,7 @@ def main():
         import ctypes
         try:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-                "IGIC-UPV.DASExplorer." + __version__
+                "sermomon.DASExplorer." + __version__
             )
         except Exception:
             pass
