@@ -44,6 +44,27 @@ Key design principles:
 - **Multi-interrogator** — natively supports HDAS 2.5 (Aragón Photonics), OptaSense (Luna Innovations) and OptoDAS (ASN/ Alcatel Subsea Networks) file formats; extensible to new systems.
 - **Research-ready** — exports data and annotations in formats directly usable by machine learning and bioacoustic analysis pipelines (NPZ, MAT, YOLO, COCO JSON, Raven Pro).
 
+## Installation
+
+### From PyPI (recommended)
+
+```bash
+pip install dasexplorer
+dasexplorer
+```
+
+### From source (GitHub)
+
+Clone the repository and install in editable mode:
+
+```bash
+git clone https://github.com/sermomon/DASexplorer.git
+cd DASexplorer
+pip install -e .
+dasexplorer
+```
+
+> **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
 
 ## Citation
 
