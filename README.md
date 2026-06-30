@@ -40,7 +40,7 @@ DASexplorer was designed for efficient interactive navigation of large DAS datas
 
 Key design principles:
 
-- **No-code** — the full analysis workflow is accessible through an intuitive GUI (including F-K filtering, RGB representation, spectral analysis, spectrogram, velosity, phase and Hilbert envelope).
+- **No-code** — the full analysis workflow is accessible through an intuitive GUI, including F-K filtering, RGB representation, spectral analysis, spectrogram, velosity, phase and Hilbert envelope.
 - **Multi-interrogator** — natively supports HDAS 2.5 (Aragón Photonics), OptaSense (Luna Innovations) and OptoDAS (ASN/ Alcatel Subsea Networks) file formats; extensible to new systems.
 - **Research-ready** — exports data and annotations in formats directly usable by machine learning and bioacoustic analysis pipelines (NPZ, MAT, YOLO, COCO JSON, Raven Pro).
 
