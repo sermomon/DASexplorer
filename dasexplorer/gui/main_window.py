@@ -553,7 +553,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status_processing("Importing NPZ…")
         QtWidgets.QApplication.processEvents()
         try:
-            from dasexplorer.core.readers import read_npz
+            #from dasexplorer.core.readers import read_npz
+            from dasexplorer.core.io_formats import read_npz
             dataset = read_npz(path)
         except Exception as exc:
             self._status_error(f"NPZ import error: {exc}")
@@ -573,7 +574,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status_processing("Importing MAT…")
         QtWidgets.QApplication.processEvents()
         try:
-            from dasexplorer.core.readers import read_mat
+            #from dasexplorer.core.readers import read_mat
+            from dasexplorer.core.io_formats import read_mat
             dataset = read_mat(path)
         except Exception as exc:
             self._status_error(f"MAT import error: {exc}")

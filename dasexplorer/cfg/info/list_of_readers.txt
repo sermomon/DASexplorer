@@ -1,0 +1,5 @@
+Reader				Company				Interrogator		Format			Function			Project
+
+APL HDAS2.5 UPV + APL		Aragón Photonics Lab.		HDAS 2.5		.bin (proprietary)	read_hdas25_v1()		UPV + APL Colaboration
+Luna Inn. OptaSence		Lunna Innovation (QinetiQ)	OptaSence		.h5  (custom)		read_optasence_v1()		OOI-RCA 2021
+Silixa iDAS			Silixa				iDAS			.tdms			read_idas_v1()			OOI-RCA 2021

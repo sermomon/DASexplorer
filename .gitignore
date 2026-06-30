@@ -12,10 +12,7 @@ dist/
 build/
 
 # Local DAS data directories (not shared)
-dasexplorer/data/hdas25
-dasexplorer/data/optasence
-dasexplorer/data/optodas
-dasexplorer/data/silixa
+dasexplorer/datasets/
 
 # Virtual environments
 .venv/

@@ -1,0 +1,3 @@
+STEPS TO ADD A NEW INTERROGATOR READER
+
+1. Generate a function readers.py 

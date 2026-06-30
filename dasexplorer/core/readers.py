@@ -7,15 +7,17 @@ added to the READERS dict at the bottom of this file.
 """
 
 import os
+import re
 import sys
 import datetime
 from typing import Optional
 import numpy as np
 
-from .data_model import DASDataset
+#from .data_model import DASDataset
+from dasexplorer.core.data_model import DASDataset
 
-INTERROGATOR_LABELS = ["HDAS 2.5 [.bin]", "OptaSense [.h5]", "OptoDAS [.hdf5]"]
-INTERROGATOR_TYPES  = ["hdas2.5",          "optasense",        "optodas"]
+INTERROGATOR_LABELS = ["HDAS 2.5 [.bin]", "OptaSense [.h5]", "Silixa [.tdms]", "OptoDAS [.hdf5]"]
+INTERROGATOR_TYPES  = ["hdas2.5_v1", "optasense_v1", "silixa_v1", "optodas_v1"]
 
 # Path to the DAS-ALME 'tools' package, if it is not already importable.
 # Leave as None if 'tools' is already on PYTHONPATH.
@@ -27,7 +29,18 @@ def _ensure_tools_importable() -> None:
         sys.path.append(DAS_ALME_TOOLS_PATH)
 
 
-def read_hdas25(path: str, num_files: int = 1, stride: Optional[int] = None) -> DASDataset:
+#%% EXTERNAL READERS -------------------------------------------------------------------------------------------
+
+def read_hdas25_v1(
+    path: str,
+    num_files: int = 1,
+    stride: Optional[int] = None
+) -> DASDataset:
+    
+    ######################################################################
+    ### HDAS 2.5 / ARAGON PHOTONICS LAB. - (.bin) UPV + APL EXPERIMENT 
+    ######################################################################
+
     """
     Read a DAS acquisition from an Aragon Photonics HDAS 2.5 interrogator.
 
@@ -90,11 +103,16 @@ def read_hdas25(path: str, num_files: int = 1, stride: Optional[int] = None) -> 
     )
 
 
-def read_optasense(
+def read_optasense_v1(
     path: str,
     selected_channels_m: Optional[list] = None,
     stride: Optional[int] = None,
 ) -> DASDataset:
+    
+    ######################################################################
+    ### OPTASENCE / QUINETIQ, LUNA INNOVATIONS (.h5) OOI-RCA 2021
+    ######################################################################
+
     """
     Read a DAS acquisition from an OptaSense interrogator (HDF5).
 
@@ -177,149 +195,110 @@ def read_optasense(
     )
 
 
-def read_npz(path: str) -> DASDataset:
-    """
-    Read a DAS dataset previously exported via File > Save as NPZ.
-
-    The .npz stores tr, dist_m, time_s, fs_hz, and all metadata needed to
-    reconstruct a DASDataset exactly as the original reader would have
-    produced it (units, interrogator type, downsample, original filename,
-    start time, and any free-form metadata as a JSON string).
-
-    Parameters
-    ----------
-    path : str
-        Path to the .npz file.
-
-    Returns
-    -------
-    DASDataset
-    """
-    import json
-
-    with np.load(path, allow_pickle=False) as npz:
-        tr      = npz["tr"]
-        dist_m  = npz["dist_m"]
-        time_s  = npz["time_s"]
-        fs_hz   = float(npz["fs_hz"])
-
-        start_iso = str(npz["start_datetime_utc"]) if "start_datetime_utc" in npz else ""
-        start_datetime_utc = None
-        if start_iso:
-            try:
-                start_datetime_utc = datetime.datetime.fromisoformat(start_iso)
-            except ValueError:
-                start_datetime_utc = None
-
-        filename     = str(npz["filename"]) if "filename" in npz else os.path.basename(path)
-        interrogator = str(npz["interrogator"]) if "interrogator" in npz else None
-        downsample   = int(npz["downsample"]) if "downsample" in npz else None
-        units        = str(npz["units"]) if "units" in npz else None
-
-        metadata = {}
-        if "metadata_json" in npz:
-            try:
-                metadata = json.loads(str(npz["metadata_json"]))
-            except (ValueError, TypeError):
-                metadata = {}
-
-    return DASDataset(
-        tr=tr.astype(np.float32),
-        dist_m=dist_m.astype(np.float64),
-        time_s=time_s.astype(np.float64),
-        fs_hz=fs_hz,
-        start_datetime_utc=start_datetime_utc,
-        filename=filename,
-        interrogator=interrogator or None,
-        downsample=downsample,
-        metadata=metadata,
-        units=units or None,
-    )
-
-
-def _mat_scalar(value):
-    """scipy.io.loadmat wraps scalars as e.g. [[50.0]] — unwrap to a plain
-    Python number."""
-    arr = np.asarray(value)
-    return arr.item() if arr.size == 1 else arr
-
-
-def _mat_text(value) -> str:
-    """scipy.io.loadmat wraps strings as e.g. array(['hello'], dtype='<U5'),
-    and empty strings as a zero-size array — unwrap to a plain str, '' if
-    empty."""
-    arr = np.asarray(value)
-    if arr.size == 0:
-        return ""
-    return str(arr.reshape(-1)[0])
-
-
-def read_mat(path: str) -> DASDataset:
-    """
-    Read a DAS dataset previously exported via File > Save as MAT.
-
-    Same variable set and semantics as read_npz, stored in MATLAB .mat
-    format (scipy.io.savemat/loadmat) instead of NumPy's .npz, for
-    interoperability with MATLAB-based workflows.
-
-    Parameters
-    ----------
-    path : str
-        Path to the .mat file.
-
-    Returns
-    -------
-    DASDataset
-    """
-    import json
-    import scipy.io as sio
-
-    mat = sio.loadmat(path)
-
-    tr     = np.asarray(mat["tr"])
-    dist_m = np.asarray(mat["dist_m"]).reshape(-1)
-    time_s = np.asarray(mat["time_s"]).reshape(-1)
-    fs_hz  = float(_mat_scalar(mat["fs_hz"]))
-
-    start_iso = _mat_text(mat["start_datetime_utc"]) if "start_datetime_utc" in mat else ""
-    start_datetime_utc = None
-    if start_iso:
-        try:
-            start_datetime_utc = datetime.datetime.fromisoformat(start_iso)
-        except ValueError:
-            start_datetime_utc = None
-
-    filename     = _mat_text(mat["filename"]) if "filename" in mat else os.path.basename(path)
-    interrogator = _mat_text(mat["interrogator"]) if "interrogator" in mat else ""
-    downsample_raw = _mat_scalar(mat["downsample"]) if "downsample" in mat else None
-    downsample   = int(downsample_raw) if downsample_raw is not None else None
-    units        = _mat_text(mat["units"]) if "units" in mat else ""
-
-    metadata = {}
-    if "metadata_json" in mat:
-        try:
-            metadata = json.loads(_mat_text(mat["metadata_json"]))
-        except (ValueError, TypeError):
-            metadata = {}
-
-    return DASDataset(
-        tr=tr.astype(np.float32),
-        dist_m=dist_m.astype(np.float64),
-        time_s=time_s.astype(np.float64),
-        fs_hz=fs_hz,
-        start_datetime_utc=start_datetime_utc,
-        filename=filename or os.path.basename(path),
-        interrogator=interrogator or None,
-        downsample=downsample,
-        metadata=metadata,
-        units=units or None,
-    )
-
-
-def read_optodas(
+def read_idas_v1(
     path: str,
     stride: Optional[int] = None,
 ) -> DASDataset:
+
+    ######################################################################
+    ### SILIXA iDAS - (.tdms) OOI RCA 2021
+    ######################################################################
+
+    """
+    Read a DAS acquisition from a Silixa iDAS interrogator (.tdms format).
+
+    Follows the same convention as das4whales.get_metadata_silixa /
+    load_das_data for the OOI RCA 2021 deployment.
+
+    Units
+    -----
+    The raw TDMS data is int16 unwrapped optical phase. It is converted to
+    strain using: scale_factor = (116 * fs * 1e-9) / (GL * 2**13), then the
+    per-channel mean is removed (standard das4whales raw2strain step).
+
+    Parameters
+    ----------
+    path : str
+        Full path to the .tdms file.
+    stride : int, optional
+        Channel subsampling factor (tr[::stride, :]).
+
+    Returns
+    -------
+    DASDataset
+    """
+    from nptdms import TdmsFile
+
+    tdms = TdmsFile.read(path)
+    props = tdms.properties
+    group = tdms["Measurement"]
+
+    # Stack all numbered channels into a (n_channels, n_time) array
+    # tr = np.asarray([channel.data for channel in group], dtype=np.float64) # deprecated!
+    tr = np.asarray([channel.data for channel in group.channels()], dtype=np.float64)
+
+    fs_hz = float(props["SamplingFrequency[Hz]"])
+    dx_m = float(props["SpatialResolution[m]"])
+    gauge_length_m = float(props["GaugeLength"])
+    refractive_index = float(props["FibreIndex"])
+    start_dist_m = float(props["StartPosition[m]"])
+
+    # Phase -> strain conversion (das4whales raw2strain convention)
+    scale_factor = (116.0 * fs_hz * 1e-9) / (gauge_length_m * 2 ** 13)
+    tr -= np.mean(tr, axis=1, keepdims=True)
+    tr *= scale_factor * 1e9  # convert strain -> nanostrain
+    tr = tr.astype(np.float32)
+
+    n_channels = tr.shape[0]
+    dist_m = start_dist_m + np.arange(n_channels) * dx_m
+    time_s = np.arange(tr.shape[1]) / fs_hz
+
+    # UTC start time from the filename: OOIPacCity_UTC_YYYYMMDD_HHMMSS.mmm
+    start_dt = None
+    fname = os.path.basename(path)
+    m = re.search(r"(\d{8})_(\d{6})[._](\d+)", fname) # pattern2: "(\d{8})_(\d{6})\.(\d+)"
+    if m:
+        date_str, time_str, ms_str = m.groups()
+        start_dt = datetime.datetime.strptime(
+            date_str + time_str, "%Y%m%d%H%M%S"
+        ).replace(tzinfo=datetime.timezone.utc)
+        start_dt += datetime.timedelta(milliseconds=int(ms_str.ljust(3, "0")[:3]))
+
+    downsample = None
+    if stride is not None and stride > 1:
+        tr = tr[::stride, :]
+        dist_m = dist_m[::stride]
+        downsample = stride
+
+    return DASDataset(
+        tr=tr,
+        dist_m=dist_m,
+        time_s=time_s,
+        fs_hz=fs_hz,
+        start_datetime_utc=start_dt,
+        filename=fname,
+        interrogator="silixa",
+        downsample=downsample,
+        metadata={
+            "dx_m": dx_m,
+            "gauge_length_m": gauge_length_m,
+            "refractive_index": refractive_index,
+            "start_dist_m": start_dist_m,
+            "scale_factor": scale_factor,
+        },
+        units="nanostrain",
+    )
+
+
+def read_optodas_v1(
+    path: str,
+    stride: Optional[int] = None,
+) -> DASDataset:
+    
+    ######################################################################
+    ### OPTODAS - ASN/ ALCATEL SUBMARINE NETWORK (.hdf5) OOI RCA 2025
+    ######################################################################
+    
     """
     Read a DAS acquisition from an OptoDAS interrogator (Alcatel Subsea Networks),
     HDF5 format as used in the 2024/2025 OOI RCA experiments.
@@ -417,10 +396,157 @@ def read_optodas(
         units=units,
     )
 
+
+#%% RE-IMPORT READERS ------------------------------------------------------------------------------------------
+
+
+# def read_npz(path: str) -> DASDataset:
+#     """
+#     Read a DAS dataset previously exported via File > Save as NPZ.
+
+#     The .npz stores tr, dist_m, time_s, fs_hz, and all metadata needed to
+#     reconstruct a DASDataset exactly as the original reader would have
+#     produced it (units, interrogator type, downsample, original filename,
+#     start time, and any free-form metadata as a JSON string).
+
+#     Parameters
+#     ----------
+#     path : str
+#         Path to the .npz file.
+
+#     Returns
+#     -------
+#     DASDataset
+#     """
+#     import json
+
+#     with np.load(path, allow_pickle=False) as npz:
+#         tr      = npz["tr"]
+#         dist_m  = npz["dist_m"]
+#         time_s  = npz["time_s"]
+#         fs_hz   = float(npz["fs_hz"])
+
+#         start_iso = str(npz["start_datetime_utc"]) if "start_datetime_utc" in npz else ""
+#         start_datetime_utc = None
+#         if start_iso:
+#             try:
+#                 start_datetime_utc = datetime.datetime.fromisoformat(start_iso)
+#             except ValueError:
+#                 start_datetime_utc = None
+
+#         filename     = str(npz["filename"]) if "filename" in npz else os.path.basename(path)
+#         interrogator = str(npz["interrogator"]) if "interrogator" in npz else None
+#         downsample   = int(npz["downsample"]) if "downsample" in npz else None
+#         units        = str(npz["units"]) if "units" in npz else None
+
+#         metadata = {}
+#         if "metadata_json" in npz:
+#             try:
+#                 metadata = json.loads(str(npz["metadata_json"]))
+#             except (ValueError, TypeError):
+#                 metadata = {}
+
+#     return DASDataset(
+#         tr=tr.astype(np.float32),
+#         dist_m=dist_m.astype(np.float64),
+#         time_s=time_s.astype(np.float64),
+#         fs_hz=fs_hz,
+#         start_datetime_utc=start_datetime_utc,
+#         filename=filename,
+#         interrogator=interrogator or None,
+#         downsample=downsample,
+#         metadata=metadata,
+#         units=units or None,
+#     )
+
+
+# def _mat_scalar(value):
+#     """scipy.io.loadmat wraps scalars as e.g. [[50.0]] — unwrap to a plain
+#     Python number."""
+#     arr = np.asarray(value)
+#     return arr.item() if arr.size == 1 else arr
+
+
+# def _mat_text(value) -> str:
+#     """scipy.io.loadmat wraps strings as e.g. array(['hello'], dtype='<U5'),
+#     and empty strings as a zero-size array — unwrap to a plain str, '' if
+#     empty."""
+#     arr = np.asarray(value)
+#     if arr.size == 0:
+#         return ""
+#     return str(arr.reshape(-1)[0])
+
+
+# def read_mat(path: str) -> DASDataset:
+#     """
+#     Read a DAS dataset previously exported via File > Save as MAT.
+
+#     Same variable set and semantics as read_npz, stored in MATLAB .mat
+#     format (scipy.io.savemat/loadmat) instead of NumPy's .npz, for
+#     interoperability with MATLAB-based workflows.
+
+#     Parameters
+#     ----------
+#     path : str
+#         Path to the .mat file.
+
+#     Returns
+#     -------
+#     DASDataset
+#     """
+#     import json
+#     import scipy.io as sio
+
+#     mat = sio.loadmat(path)
+
+#     tr     = np.asarray(mat["tr"])
+#     dist_m = np.asarray(mat["dist_m"]).reshape(-1)
+#     time_s = np.asarray(mat["time_s"]).reshape(-1)
+#     fs_hz  = float(_mat_scalar(mat["fs_hz"]))
+
+#     start_iso = _mat_text(mat["start_datetime_utc"]) if "start_datetime_utc" in mat else ""
+#     start_datetime_utc = None
+#     if start_iso:
+#         try:
+#             start_datetime_utc = datetime.datetime.fromisoformat(start_iso)
+#         except ValueError:
+#             start_datetime_utc = None
+
+#     filename     = _mat_text(mat["filename"]) if "filename" in mat else os.path.basename(path)
+#     interrogator = _mat_text(mat["interrogator"]) if "interrogator" in mat else ""
+#     downsample_raw = _mat_scalar(mat["downsample"]) if "downsample" in mat else None
+#     downsample   = int(downsample_raw) if downsample_raw is not None else None
+#     units        = _mat_text(mat["units"]) if "units" in mat else ""
+
+#     metadata = {}
+#     if "metadata_json" in mat:
+#         try:
+#             metadata = json.loads(_mat_text(mat["metadata_json"]))
+#         except (ValueError, TypeError):
+#             metadata = {}
+
+#     return DASDataset(
+#         tr=tr.astype(np.float32),
+#         dist_m=dist_m.astype(np.float64),
+#         time_s=time_s.astype(np.float64),
+#         fs_hz=fs_hz,
+#         start_datetime_utc=start_datetime_utc,
+#         filename=filename or os.path.basename(path),
+#         interrogator=interrogator or None,
+#         downsample=downsample,
+#         metadata=metadata,
+#         units=units or None,
+#     )
+
+
+#%% READERS DICTIONARY ------------------------------------------------------------------------------------------
+
+
 READERS = {
-    "hdas2.5":   read_hdas25,
-    "optasense": read_optasense,
-    "optodas":   read_optodas,
+    "hdas2.5_v1":   read_hdas25_v1,
+    "optasense_v1": read_optasense_v1,
+    "silixa_v1": read_idas_v1,
+    "optodas_v1":   read_optodas_v1,
 }
 
 
