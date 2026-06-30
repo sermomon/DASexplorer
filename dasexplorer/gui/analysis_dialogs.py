@@ -15,9 +15,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from dasexplorer.core.analysis import (
-    compute_spectrogram, compute_spectrum, select_channels_for_spectral
-)
+from dasexplorer.core.analysis import (compute_spectrogram, compute_spectrum, select_channels_for_spectral)
 from dasexplorer.gui import theme
 
 # Tab10 colours for fixed channels / individual spectra
@@ -91,10 +89,10 @@ class SpectrogramDialog(QtWidgets.QDialog):
         screen = QtWidgets.QApplication.primaryScreen().availableGeometry()
         self.resize(int(screen.width() * 0.55), int(screen.height() * 0.55))
 
-        self.ann     = ann
+        self.ann = ann
         self.dataset = dataset
-        self.cmap    = colormap
-        self._cache  = {}   # (ch, nperseg, noverlap, nfft) → (f, t, Sxx_db)
+        self.cmap = colormap
+        self._cache = {} # (ch, nperseg, noverlap, nfft) → (f, t, Sxx_db)
 
         # Convert annotation global channel indices to local indices of ds.tr.
         # When stride > 1 the reader decimates channels but keeps the full
@@ -106,8 +104,8 @@ class SpectrogramDialog(QtWidgets.QDialog):
         di1 = int(np.clip(np.searchsorted(dist_local, ann.d1), 0, n_tr - 1))
         if di1 <= di0:
             di1 = min(di0 + 1, n_tr - 1)
-        self._di0    = di0
-        self._di1    = di1
+        self._di0 = di0
+        self._di1 = di1
         self._cur_ch = (di0 + di1) // 2
 
         self._build_ui()
@@ -132,14 +130,13 @@ class SpectrogramDialog(QtWidgets.QDialog):
         # nperseg=1024, overlap=75% → matches annotation_gui() quality
         self.sb_nperseg = _make_spinbox(1024, 16, 8192, 16)
         self.sb_overlap = _make_spinbox(75,   0,   99,  5)
-        self.sb_nfft    = _make_spinbox(1024, 16, 8192, 16)
-        self.sb_fmax    = _make_spinbox(
+        self.sb_nfft = _make_spinbox(1024, 16, 8192, 16)
+        self.sb_fmax = _make_spinbox(
             self.dataset.fs_hz / 2, 1, self.dataset.fs_hz / 2, 1)
-        self.sb_zoom    = _make_spinbox(4,    1,   16,  1)
+        self.sb_zoom = _make_spinbox(4,    1,   16,  1)
         self.sb_zoom.setToolTip(
             "Bilinear upsampling factor applied to both axes before display.\n"
-            "Higher = smoother appearance, slower rendering."
-        )
+            "Higher = smoother appearance, slower rendering.")
         self.sb_vmin = QtWidgets.QDoubleSpinBox()
         self.sb_vmin.setRange(-300, 300); self.sb_vmin.setDecimals(1)
         self.sb_vmin.setFixedWidth(80)
@@ -179,14 +176,13 @@ class SpectrogramDialog(QtWidgets.QDialog):
 
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Time [s]")
-        self.plot_widget.setLabel("left",   "Frequency [Hz]")
+        self.plot_widget.setLabel("left", "Frequency [Hz]")
         self.image_item = pg.ImageItem()
         self.image_item.setAutoDownsample(False)  # let zoom handle quality
         self.plot_widget.addItem(self.image_item)
 
         # Bbox time markers
-        pen_dash = pg.mkPen(color=theme.current()["pg_line_avg"], width=1.5,
-                             style=QtCore.Qt.DashLine)
+        pen_dash = pg.mkPen(color=theme.current()["pg_line_avg"], width=1.5, style=QtCore.Qt.DashLine)
         self._vline0 = pg.InfiniteLine(pos=self.ann.t0, angle=90, pen=pen_dash)
         self._vline1 = pg.InfiniteLine(pos=self.ann.t1, angle=90, pen=pen_dash)
         self.plot_widget.addItem(self._vline0)
@@ -219,13 +215,13 @@ class SpectrogramDialog(QtWidgets.QDialog):
         from scipy.ndimage import zoom as ndimage_zoom
 
         self._cur_ch = ch
-        ds       = self.dataset
+        ds = self.dataset
         dist = float(ds.dist_m[ch]) if ch < len(ds.dist_m) else 0
-        nperseg  = self.sb_nperseg.value()
-        overlap  = self.sb_overlap.value()
-        nfft     = max(self.sb_nfft.value(), nperseg)
+        nperseg = self.sb_nperseg.value()
+        overlap = self.sb_overlap.value()
+        nfft = max(self.sb_nfft.value(), nperseg)
         noverlap = int(nperseg * overlap / 100)
-        fmax     = self.sb_fmax.value()
+        fmax = self.sb_fmax.value()
 
         key = (ch, nperseg, noverlap, nfft)
         if key not in self._cache:
@@ -236,8 +232,8 @@ class SpectrogramDialog(QtWidgets.QDialog):
         f, t, Sxx_db = self._cache[key]
 
         # Frequency mask
-        fmask    = f <= fmax
-        f_shown  = f[fmask]
+        fmask = f <= fmax
+        f_shown = f[fmask]
         Sxx_show = Sxx_db[fmask, :]   # (n_freq, n_time)
 
         if update_range:
@@ -255,33 +251,31 @@ class SpectrogramDialog(QtWidgets.QDialog):
         n_freq_r, n_time_r = Sxx_render.shape
 
         # Physical coordinates of the rendered array
-        t0_s = float(t[0]  + ds.time_s[0])   # adjust to absolute time
+        t0_s = float(t[0] + ds.time_s[0])   # adjust to absolute time
         t1_s = float(t[-1] + ds.time_s[0])
-        y0   = float(f_shown[0])
-        y1   = float(f_shown[-1])
+        y0 = float(f_shown[0])
+        y1 = float(f_shown[-1])
         dt_r = (t1_s - t0_s) / max(n_time_r - 1, 1)
-        df_r = (y1   - y0)   / max(n_freq_r - 1, 1)
+        df_r = (y1 - y0) / max(n_freq_r - 1, 1)
 
         # --- Render ---
         self.image_item.sigImageChanged.disconnect(self.histogram.item.imageChanged)
         self.image_item.setImage(Sxx_render, autoLevels=False, levels=[vmin, vmax])
-        self.image_item.setRect(QtCore.QRectF(t0_s, y0,
-                                               t1_s - t0_s + dt_r,
-                                               y1   - y0   + df_r))
+        self.image_item.setRect(QtCore.QRectF(t0_s, y0, t1_s - t0_s + dt_r, y1 - y0 + df_r))
         self.image_item.sigImageChanged.connect(self.histogram.item.imageChanged)
 
         self.histogram.item.imageChanged(autoLevel=False)
         self.histogram.setLevels(vmin, vmax)
         self.histogram.setHistogramRange(vmin - 5, vmax + 5, padding=0.05)
 
-        self.plot_widget.setLimits(xMin=t0_s, xMax=t1_s + dt_r,
-                                   yMin=y0,   yMax=y1   + df_r)
-        self.plot_widget.setRange(xRange=(t0_s, t1_s + dt_r),
-                                  yRange=(y0, y1 + df_r), padding=0)
+        self.plot_widget.setLimits(
+          xMin=t0_s, xMax=t1_s + dt_r, yMin=y0, yMax=y1 + df_r)
+        self.plot_widget.setRange(
+          xRange=(t0_s, t1_s + dt_r), yRange=(y0, y1 + df_r), padding=0)
 
         self.setWindowTitle(
             f"Spectrogram — Event [{self.ann.id}]  "
-            f"Channel {ch}  ({dist:.0f} m)  "
+            f"Channel {ch} ({dist:.0f} m)  "
             f"t={self.ann.t0:.2f}–{self.ann.t1:.2f} s"
         )
 
@@ -371,7 +365,7 @@ class SpectralDialog(QtWidgets.QDialog):
         screen = QtWidgets.QApplication.primaryScreen().availableGeometry()
         self.resize(int(screen.width() * 0.55), int(screen.height() * 0.55))
 
-        self.ann     = ann
+        self.ann = ann
         self.dataset = dataset
 
         di0, di1 = ann.di0, ann.di1
@@ -425,16 +419,16 @@ class SpectralDialog(QtWidgets.QDialog):
 
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Frequency [Hz]")
-        self.plot_widget.setLabel("left",   "Magnitude [a.u.]")
+        self.plot_widget.setLabel("left", "Magnitude [a.u.]")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
         layout.addWidget(self.plot_widget, 1)
 
     def _plot(self):
-        ds   = self.dataset
+        ds = self.dataset
         nfft = self.sb_nfft.value()
-        win  = self.combo_win.currentText()
+        win = self.combo_win.currentText()
         fmax = self.sb_fmax.value()
-        log  = self.combo_scale.currentText() == 'Log'
+        log = self.combo_scale.currentText() == 'Log'
 
         self.plot_widget.clear()
 
@@ -448,7 +442,7 @@ class SpectralDialog(QtWidgets.QDialog):
             spectra.append(mag)
 
             color = _TAB10[i % len(_TAB10)]
-            pen   = pg.mkPen(color=(*color, 100), width=1)
+            pen = pg.mkPen(color=(*color, 100), width=1)
             self.plot_widget.plot(freqs, mag, pen=pen)
 
         if spectra:
@@ -1795,7 +1789,7 @@ class VelocityDialog(QtWidgets.QDialog):
         d_arr = np.array([p[1] for p in self._picks])
         slope, intercept, r, _, se = linregress(t_arr, d_arr)
         r2 = r ** 2
-        self._velocity_ms = slope
+        self._velocity_ms = abs(slope)
         self._r2 = r2
 
         # Draw regression line across view t range
