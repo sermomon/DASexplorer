@@ -70,7 +70,7 @@ dasexplorer
 
 If you use DASexplorer in your research, please cite: 
 
-Morell-Monzó, S. (2026). DASexplorer (Version v1.0.1) [Computer software]. Zenodo. https://doi.org/10.5281/ZENODO.21032550
+Morell-Monzó, S. (2026). DASexplorer (Version v1.0) [Computer software]. Zenodo. https://doi.org/10.5281/ZENODO.21032550
 
 ```bibtex
 @software{morellmonzo2026dasexplorer,
