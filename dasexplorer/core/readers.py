@@ -16,8 +16,8 @@ import numpy as np
 #from .data_model import DASDataset
 from dasexplorer.core.data_model import DASDataset
 
-INTERROGATOR_LABELS = ["HDAS 2.5 [.bin]", "OptaSense [.h5]", "Silixa [.tdms]", "OptoDAS [.hdf5]"]
-INTERROGATOR_TYPES  = ["hdas2.5_v1", "optasense_v1", "silixa_v1", "optodas_v1"]
+INTERROGATOR_LABELS = ["HDAS 2.5 [.bin]", "OptaSense [.h5]", "Silixa [.tdms]", "OptoDAS [.hdf5]", "OptoDAS [.hdf5]", "Svalbard [.mat]"]
+INTERROGATOR_TYPES  = ["hdas2.5_v1", "optasense_v1", "silixa_v1", "optodas_v1", "optodas_v2", "Svalbard_v1"]
 
 # Path to the DAS-ALME 'tools' package, if it is not already importable.
 # Leave as None if 'tools' is already on PYTHONPATH.
@@ -111,6 +111,7 @@ def read_optasense_v1(
     
     ######################################################################
     ### OPTASENCE / QUINETIQ, LUNA INNOVATIONS (.h5) OOI-RCA 2021
+    # https://doi.org/10.58046/5J60-FJ89
     ######################################################################
 
     """
@@ -202,6 +203,7 @@ def read_idas_v1(
 
     ######################################################################
     ### SILIXA iDAS - (.tdms) OOI RCA 2021
+    # https://doi.org/10.58046/5J60-FJ89
     ######################################################################
 
     """
@@ -294,9 +296,108 @@ def read_optodas_v1(
     path: str,
     stride: Optional[int] = None,
 ) -> DASDataset:
+
+    ######################################################################
+    ### OPTODAS / ASN - (.hdf5) OOI-RCA 2024 muxDAS / fsic042
+    # https://doi.org/10.58046/4WEF-A282
+    ######################################################################
+
+    """
+    Read a DAS acquisition from an ASN OptoDAS interrogator, OOI RCA 2024
+    deployment (muxDAS experiment).
+
+    Unlike the OOI RCA 2025 OptoDAS files (read_optodas_v1), this version
+    stores data directly as float32 in physical units (dataScale == 1.0),
+    so no int16 -> float scaling is needed.
+
+    Units
+    -----
+    Data is returned as-is in rad/(s*m) (phase rate per distance), matching
+    header/unit. The header also exposes header/sensitivities
+    [rad/(strain*m)] for converting to strain rate if needed in the future.
+
+    Parameters
+    ----------
+    path : str
+        Full path to the .hdf5 file.
+    stride : int, optional
+        Channel subsampling factor (tr[::stride, :]).
+
+    Returns
+    -------
+    DASDataset
+    """
+    import h5py
+
+    with h5py.File(path, "r") as f:
+        hdr = f["header"]
+
+        dt_s = float(hdr["dt"][()])
+        fs_hz = 1.0 / dt_s
+        dx_m = float(hdr["dx"][()])
+        gauge_length_m = float(hdr["gaugeLength"][()])
+        data_scale = float(hdr["dataScale"][()])
+
+        raw_unit = hdr["unit"][()]
+        units = raw_unit.decode() if isinstance(raw_unit, bytes) else str(raw_unit)
+
+        # Data is stored as (n_time, n_channels) -> transpose to (n_channels, n_time)
+        raw = f["data"][:]
+        tr = raw.T.astype(np.float32)
+        if data_scale != 1.0:
+            tr *= data_scale
+
+        # Real per-channel distances from cableSpec
+        dist_m = f["cableSpec/sensorDistances"][:].astype(np.float64)
+        n_ch = tr.shape[0]
+        dist_m = dist_m[:n_ch] if len(dist_m) >= n_ch else np.arange(n_ch) * dx_m
+
+        # UTC start time: Unix seconds
+        t0_s = float(hdr["time"][()])
+        start_dt = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc) + \
+                   datetime.timedelta(seconds=t0_s)
+
+        # Extra metadata for future strain conversion
+        sensitivities = hdr["sensitivities"][()] if "sensitivities" in hdr else None
+        instrument = hdr["instrument"][()]
+        instrument = instrument.decode() if isinstance(instrument, bytes) else str(instrument)
+
+    time_s = np.arange(tr.shape[1]) * dt_s
+
+    downsample = None
+    if stride is not None and stride > 1:
+        tr = tr[::stride, :]
+        dist_m = dist_m[::stride]
+        downsample = stride
+
+    return DASDataset(
+        tr=tr,
+        dist_m=dist_m,
+        time_s=time_s,
+        fs_hz=fs_hz,
+        start_datetime_utc=start_dt,
+        filename=os.path.basename(path),
+        interrogator="optodas_v2",
+        downsample=downsample,
+        metadata={
+            "dx_m": dx_m,
+            "gauge_length_m": gauge_length_m,
+            "data_scale": data_scale,
+            "instrument": instrument,
+            "sensitivities_rad_per_strain_m": float(sensitivities[0, 0]) if sensitivities is not None else None,
+        },
+        units=units,
+    )
+
+
+def read_optodas_v2(
+    path: str,
+    stride: Optional[int] = None,
+) -> DASDataset:
     
     ######################################################################
-    ### OPTODAS - ASN/ ALCATEL SUBMARINE NETWORK (.hdf5) OOI RCA 2025
+    ### OPTODAS - ASN/ ALCATEL SUBMARINE NETWORK (.hdf5) OOI RCA 2025 (preliminary)
+    # https://oceanobservatories.org/2025/01/regional-cabled-array-monitoring-axial-seamount-in-real-time/
     ######################################################################
     
     """
@@ -396,6 +497,104 @@ def read_optodas_v1(
         units=units,
     )
 
+
+def read_svalbard_v1(
+    path: str,
+    stride: Optional[int] = None,
+) -> DASDataset:
+
+    ######################################################################
+    ### OPTODAS ASN/ ALCATEL SUBMARINE NETWORK - (.mat) SVALBARD-2020
+    ### https://doi.org/10.5281/zenodo.5823343
+    ######################################################################
+
+    """
+    Read a DAS acquisition from the Svalbard DAS4Whale dataset
+    (Bouffaut et al., 2022, Front. Mar. Sci.).
+
+    Data is stored as MATLAB HDF5 .mat files. Each file covers a
+    subset of channels along the 120 km Svalbard fiber optic cable
+    (Longyearbyen to open ocean through Isfjorden).
+
+    Units
+    -----
+    Data is already in nanostrain — no scaling required.
+
+    Parameters
+    ----------
+    path : str
+        Full path to the .mat file.
+    stride : int, optional
+        Channel subsampling factor (tr[::stride, :]).
+
+    Returns
+    -------
+    DASDataset
+    """
+    import scipy.io as sio
+
+    mat = sio.loadmat(path)
+
+    # Data: (n_channels, n_time), already in nanostrain
+    tr = np.asarray(mat["data"]).astype(np.float32)
+
+    # Sampling parameters
+    fs_hz = float(np.asarray(mat["info_sampling_frequency_Hz"]).ravel()[0])
+    dt_s  = float(np.asarray(mat["info_sample_interval_s"]).ravel()[0])
+    dx_m  = float(np.asarray(mat["info_SSI_m"]).ravel()[0])
+    gl_m  = float(np.asarray(mat["info_GL_m"]).ravel()[0])
+
+    # Units
+    raw_units = np.asarray(mat["info_units"]).ravel()
+    units = str(raw_units[0]) if raw_units.size > 0 else "nanostrain"
+
+    # Channel distances from shore [m] — use x1_distance_from_shore_m
+    dist_m = np.asarray(mat["x1_distance_from_shore_m"]).ravel().astype(np.float64)
+    if dist_m.shape[0] != tr.shape[0]:
+        dist_m = np.arange(tr.shape[0]) * dx_m
+
+    # Time vector [s]
+    time_s = np.asarray(mat["x2_time_s"]).ravel().astype(np.float64)
+    if time_s.shape[0] != tr.shape[1]:
+        time_s = np.arange(tr.shape[1]) * dt_s
+
+    # UTC start time from info_timestamp (string: e.g. '20200627_052441')
+    start_dt = None
+    try:
+        raw_ts = np.asarray(mat["info_timestamp"]).ravel()
+        ts_str = str(raw_ts[0]).strip()
+        start_dt = datetime.datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(
+            tzinfo=datetime.timezone.utc
+        )
+    except Exception:
+        # Fallback: parse from filename YYYYMMDD_HHMMSS_ch...
+        m = re.search(r"(\d{8})_(\d{6})", os.path.basename(path))
+        if m:
+            start_dt = datetime.datetime.strptime(
+                m.group(1) + m.group(2), "%Y%m%d%H%M%S"
+            ).replace(tzinfo=datetime.timezone.utc)
+
+    downsample = None
+    if stride is not None and stride > 1:
+        tr     = tr[::stride, :]
+        dist_m = dist_m[::stride]
+        downsample = stride
+
+    return DASDataset(
+        tr=tr,
+        dist_m=dist_m,
+        time_s=time_s,
+        fs_hz=fs_hz,
+        start_datetime_utc=start_dt,
+        filename=os.path.basename(path),
+        interrogator="svalbard_v1",
+        downsample=downsample,
+        metadata={
+            "dx_m": dx_m,
+            "gauge_length_m": gl_m,
+        },
+        units=units,
+    )
 
 #%% RE-IMPORT READERS ------------------------------------------------------------------------------------------
 
@@ -546,7 +745,9 @@ READERS = {
     "hdas2.5_v1":   read_hdas25_v1,
     "optasense_v1": read_optasense_v1,
     "silixa_v1": read_idas_v1,
-    "optodas_v1":   read_optodas_v1,
+    "optodas_v1":  read_optodas_v1,
+    "optodas_v2": read_optodas_v2,
+    "svalbard_v1": read_svalbard_v1
 }
 
 

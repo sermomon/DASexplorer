@@ -1,0 +1,105 @@
+STEPS TO ADD A NEW INTERROGATOR READER
+========================================
+ 
+1. Generate a function in readers.py
+ 
+   Add a new function read_<name>_v<version>() in dasexplorer/core/readers.py.
+   It must accept at least `path: str` and `stride: Optional[int] = None`,
+   and return a DASDataset object with the following fields filled in:
+ 
+       tr                   2D array (n_channels, n_time), float32
+       dist_m               1D array of channel distances [m]
+       time_s               1D array of time samples relative to file start [s]
+       fs_hz                sampling rate [Hz]
+       start_datetime_utc   datetime object (UTC) of the first sample
+       filename             original filename (os.path.basename(path))
+       interrogator         string identifier, e.g. "myreader_v1"
+       downsample           stride value applied, or None
+       metadata             dict with any extra reader-specific info
+       units                string, e.g. "nanostrain", "DC", "rad/(s*m)"
+ 
+   Inspect the real file format first (e.g. using a notebook) before writing
+   the reader — never guess the file structure. Confirm: where the raw data
+   array lives, how fs_hz and dx_m are obtained, how the UTC timestamp is
+   recovered, and what physical unit conversion (if any) is required.
+ 
+2. Register the reader
+ 
+   At the bottom of readers.py, update three places:
+ 
+       INTERROGATOR_LABELS = [..., "MyReader [.ext]"]
+       INTERROGATOR_TYPES  = [..., "myreader_v1"]
+       READERS = {..., "myreader_v1": read_myreader_v1}
+ 
+   The order of LABELS and TYPES must match index by index.
+   The key used in READERS must exactly match the "interrogator" value
+   used inside the DASDataset returned by the function.
+ 
+3. Add the dependency (if any)
+ 
+   If the reader needs a new library (e.g. nptdms, h5py), add it to
+   pyproject.toml under [project] dependencies.
+ 
+4. Create a profile in config.json
+ 
+   Add a new entry under "profiles" in dasexplorer/cfg/config.json:
+ 
+       "myreader_default": {
+           "label": "MyReader (.ext) Description",
+           "interrogator": "myreader_v1",
+           "file_extensions": [".ext"],
+           "tmin_s": null, "tmax_s": null,
+           "dmin_m": null, "dmax_m": null,
+           "vmin": ..., "vmax": ...,
+           "colormap": "Rainbow",
+           "fmin_hz": ..., "fmax_hz": null, "fmax_offset_hz": 0.01,
+           "stride": 1, "envelope": false,
+           "fk_cmin_ms": ..., "fk_cmax_ms": ...,
+           "fk_fmin_hz": ..., "fk_fmax_hz": null, "fk_fmax_offset_hz": 0.01,
+           "fk_envelope": false,
+           "default_view": "raw",
+           "rgb_rmin_hz": ..., "rgb_rmax_hz": ...,
+           "rgb_gmin_hz": ..., "rgb_gmax_hz": ...,
+           "rgb_bmin_hz": ..., "rgb_bmax_hz": ...,
+           "rgb_percentile": 90.0
+       }
+ 
+   "interrogator" must match the READERS key from step 2.
+   "file_extensions" controls which files appear in the file browser
+   when this profile is selected.
+   Leave vmin/vmax/frequency ranges as rough guesses — they will be
+   calibrated visually once a real file is loaded (step 6).
+ 
+5. Install and test locally
+ 
+   With the package installed in editable mode (pip install -e .), no
+   reinstall is normally needed — just relaunch:
+ 
+       dasexplorer
+ 
+   If pyproject.toml was changed (new dependency), force a refresh:
+ 
+       pip install -e . --force-reinstall --no-deps
+ 
+6. Load a real file and calibrate the view
+ 
+   Select the new profile, load a real file from the new interrogator,
+   and check the terminal for tracebacks. Adjust vmin/vmax, frequency
+   bands and F-K velocity range in config.json until the waterfall shows
+   a sensible contrast (background noise grey/neutral, events visible).
+ 
+7. Sync with GitHub
+ 
+       git add .
+       git commit -m "Add MyReader v1 reader"
+       git push origin main
+ 
+8. Bump version and release (if publishing)
+ 
+   - Update dasexplorer/version.py
+   - Update CHANGELOG.md
+   - git add . && git commit -m "Release vX.Y.Z" && git push origin main
+   - git tag vX.Y.Z && git push --tags
+   - Create the release on GitHub (Zenodo will mint a new DOI automatically)
+   - python -m build
+   - twine upload dist/*
