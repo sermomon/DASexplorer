@@ -70,23 +70,29 @@ DASexplorer is currently capable of reading data from the following interrogator
 
 **Rapid: A Community Test of Distributed Acoustic Sensing on the Ocean Observatories Initiative Regional Cabled Array:** https://doi.org/10.58046/5J60-FJ89  
 
-* Interrogator: Luna Innovations OptaSense
+Interrogator: Luna Innovations OptaSense
 
-* Data example: [North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5](http://piweb.ooirsn.uw.edu/das/data/Optasense/NorthCable/TransmitFiber/North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-03T15_06_51-0700North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5)
+Data example: [North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5](http://piweb.ooirsn.uw.edu/das/data/Optasense/NorthCable/TransmitFiber/North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-03T15_06_51-0700North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5)
 
-* Format: HDF5 (.h5)
+Format: HDF5 (.h5)
 
 
 
 **Rapid: A Community Test of Distributed Acoustic Sensing on the Ocean Observatories Initiative Regional Cabled Array:** https://doi.org/10.58046/5J60-FJ89
+
 Interrogator: Silixa iDAS
+
 Data example: [OOIPacCity_UTC_20211101_163806.423.tdms](http://piweb.ooirsn.uw.edu/das/data/Silixa/DAS/North65km/acquisition/OOIPacCity_UTC_20211101_163806.423.tdms)
+
 Format: TDMS (.tdms)
 
 
 **Longyearbyen, Svalbard (Norway) 2020: DAS4Whales: Svalbard distributed acoustic sensing dataset for baleen whale monitoring** https://zenodo.org/records/5823343
+
 Interrogator: Alcatel Submarine Network OptoDAS
+
 Data example: [20200627_052441_ch10001_to_ch15000_whale_raw_L160s.mat](https://zenodo.org/records/5823343/files/20200627_052441_ch10001_to_ch15000_whale_raw_L160s.mat?download=1)
+
 Format: MATLAB (.mat) processed
 
 > **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
