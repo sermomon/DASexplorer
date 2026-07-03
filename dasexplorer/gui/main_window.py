@@ -922,10 +922,11 @@ class MainWindow(QtWidgets.QMainWindow):
         outer.addLayout(row)
         return outer
 
+    # Create a generic spinbox
     def _make_spinbox(self, value, min_val, max_val, step):
         sb = QtWidgets.QDoubleSpinBox()
         sb.setRange(min_val, max_val)
-        sb.setDecimals(3)
+        sb.setDecimals(6)
         sb.setSingleStep(step)
         sb.setMinimumWidth(65)
         sb.setValue(value)

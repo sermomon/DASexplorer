@@ -545,8 +545,9 @@ def read_svalbard_v1(
     gl_m  = float(np.asarray(mat["info_GL_m"]).ravel()[0])
 
     # Units
-    raw_units = np.asarray(mat["info_units"]).ravel()
-    units = str(raw_units[0]) if raw_units.size > 0 else "nanostrain"
+    #raw_units = np.asarray(mat["info_units"]).ravel()
+    #units = str(raw_units[0]) if raw_units.size > 0 else "nanostrain"
+    units = "nanostrain"
 
     # Channel distances from shore [m] — use x1_distance_from_shore_m
     dist_m = np.asarray(mat["x1_distance_from_shore_m"]).ravel().astype(np.float64)
