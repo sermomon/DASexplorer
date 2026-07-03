@@ -64,7 +64,7 @@ pip install -e .
 dasexplorer
 ```
 
-## Examples
+## Use examples
 
 DASexplorer is currently capable of reading data from the following interrogators: HDAS 2.5, OptaSence, iDAS, and OptoDAS. You can try out the tool with public datasets such as:
 
