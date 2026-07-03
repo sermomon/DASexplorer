@@ -64,13 +64,17 @@ pip install -e .
 dasexplorer
 ```
 
-### Examples
+## Examples
 
 DASexplorer is currently capable of reading data from the following interrogators: HDAS 2.5, OptaSence, iDAS, and OptoDAS. You can try out the tool with public datasets such as:
 
 **Rapid: A Community Test of Distributed Acoustic Sensing on the Ocean Observatories Initiative Regional Cabled Array:** https://doi.org/10.58046/5J60-FJ89  
 Interrogator: Luna Innovations OptaSense  
-Data example: [North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5](https://doi.org/10.58046/5J60-FJ89)
+Data example: [North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5]([https://doi.org/10.58046/5J60-FJ89](http://piweb.ooirsn.uw.edu/das/data/Optasense/NorthCable/TransmitFiber/North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-03T15_06_51-0700North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5))
+
+**Rapid: A Community Test of Distributed Acoustic Sensing on the Ocean Observatories Initiative Regional Cabled Array:** https://doi.org/10.58046/5J60-FJ89
+Interrogator: Silixa iDAS
+Data example: [OOIPacCity_UTC_20211101_163806.423.tdms](http://piweb.ooirsn.uw.edu/das/data/Silixa/DAS/North65km/acquisition/OOIPacCity_UTC_20211101_163806.423.tdms)
 
 > **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
 
