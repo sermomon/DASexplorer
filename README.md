@@ -55,7 +55,7 @@ dasexplorer
 
 ### From source (GitHub)
 
-Clone the repository and install in editable mode:
+This tool is currently under active development, so new features are being added every day. Clone the updated repository and install in editable mode:
 
 ```bash
 git clone https://github.com/sermomon/DASexplorer.git
@@ -63,6 +63,14 @@ cd DASexplorer
 pip install -e .
 dasexplorer
 ```
+
+### Examples
+
+DASexplorer is currently capable of reading data from the following interrogators: HDAS 2.5, OptaSence, iDAS, and OptoDAS. You can try out the tool with public datasets such as:
+
+**Rapid: A Community Test of Distributed Acoustic Sensing on the Ocean Observatories Initiative Regional Cabled Array:** https://doi.org/10.58046/5J60-FJ89  
+Interrogator: Luna Innovations OptaSense  
+Data example: [North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5](https://doi.org/10.58046/5J60-FJ89)
 
 > **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
 
