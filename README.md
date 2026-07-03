@@ -101,7 +101,7 @@ Data example: [20200627_052441_ch10001_to_ch15000_whale_raw_L160s.mat](https://z
 Format: MATLAB (.mat) processed
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/optasence_example.png" alt="Example Svalbard" width="500"/>
+<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/svalbard_example.png" alt="Example Svalbard" width="500"/>
 </p>
 
 > **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
