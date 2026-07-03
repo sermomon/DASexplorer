@@ -77,7 +77,7 @@ Data example: [North-C1-LR-P1kHz-GL50m-Sp2m-FS200Hz_2021-11-04T020002Z.h5](http:
 Format: HDF5 (.h5)
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/optasence_example.png" alt="Example OptaSense" width="500"/>
+<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/optasence_example.png" alt="Example OptaSense" width="400"/>
 </p>
 
 **Rapid: A Community Test of Distributed Acoustic Sensing on the Ocean Observatories Initiative Regional Cabled Array:** https://doi.org/10.58046/5J60-FJ89
@@ -89,7 +89,7 @@ Data example: [OOIPacCity_UTC_20211101_163806.423.tdms](http://piweb.ooirsn.uw.e
 Format: TDMS (.tdms)
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/idas_example.png" alt="Example iDAS" width="500"/>
+<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/idas_example.png" alt="Example iDAS" width="400"/>
 </p>
 
 **Longyearbyen, Svalbard (Norway) 2020: DAS4Whales: Svalbard distributed acoustic sensing dataset for baleen whale monitoring** https://zenodo.org/records/5823343
@@ -101,7 +101,7 @@ Data example: [20200627_052441_ch10001_to_ch15000_whale_raw_L160s.mat](https://z
 Format: MATLAB (.mat) processed
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/svalbard_example.png" alt="Example Svalbard" width="500"/>
+<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/svalbard_example.png" alt="Example Svalbard" width="400"/>
 </p>
 
 > **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
