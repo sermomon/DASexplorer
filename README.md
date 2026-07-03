@@ -84,7 +84,7 @@ Format: TDMS (.tdms)
 **Longyearbyen, Svalbard (Norway) 2020: DAS4Whales: Svalbard distributed acoustic sensing dataset for baleen whale monitoring** https://zenodo.org/records/5823343
 Interrogator: Alcatel Submarine Network OptoDAS
 Data example: [20200627_052441_ch10001_to_ch15000_whale_raw_L160s.mat](https://zenodo.org/records/5823343/files/20200627_052441_ch10001_to_ch15000_whale_raw_L160s.mat?download=1)
-Format: MATLAB (.mat)
+Format: MATLAB (.mat) processed
 
 > **Note:** Reading HDAS 2.5 `.bin` files requires the proprietary `hdas_reader` binary (provided by Aragón Photonics), which must be placed in `dasexplorer/tools/apl/`. OptaSense and OptoDAS support works out of the box.
 
