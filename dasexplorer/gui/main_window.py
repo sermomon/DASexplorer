@@ -113,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.addWidget(self.left_widget)
         self.splitter.addWidget(main_area)
         self.splitter.setChildrenCollapsible(False)
-        self.left_widget.setMinimumWidth(320)
+        self.left_widget.setMinimumWidth(350)
 
         root_layout.addWidget(self.splitter)
 
