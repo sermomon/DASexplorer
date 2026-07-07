@@ -150,20 +150,8 @@ def read_optasense_v1(
     dx_m  = metadata["dx"]
     nx    = metadata["nx"]
 
-    # Apply stride directly at read time via selected_channels_m step parameter.
-    # This avoids loading all channels into memory before subsampling.
-    effective_stride = stride if (stride is not None and stride > 1) else 1
-
     if selected_channels_m is None:
-        step_m = dx_m * effective_stride
-        selected_channels_m = [0, nx * dx_m, step_m]
-    else:
-        # Honour caller-supplied channel range but apply stride to the step
-        selected_channels_m = [
-            selected_channels_m[0],
-            selected_channels_m[1],
-            selected_channels_m[2] * effective_stride,
-        ]
+        selected_channels_m = [0, nx * dx_m, dx_m]
 
     selected_channels = [int(c // dx_m) for c in selected_channels_m]
 
@@ -179,11 +167,16 @@ def read_optasense_v1(
     tr = (tr * 1e9).astype(np.float32)
 
     # dist_m should reflect the real offset of the selected channel range
+    # (e.g. 20000-65000 m), not start at 0.
     start_dist_m = selected_channels[0] * dx_m
-    dist_m = start_dist_m + np.arange(tr.shape[0]) * dx_m * effective_stride
+    dist_m = start_dist_m + np.arange(tr.shape[0]) * dx_m
     time_s = np.arange(tr.shape[1]) / fs_hz
 
-    downsample = effective_stride if effective_stride > 1 else None
+    downsample = None
+    if stride is not None and stride > 1:
+        tr     = tr[::stride, :]
+        dist_m = dist_m[::stride]
+        downsample = stride
 
     return DASDataset(
         tr=tr,

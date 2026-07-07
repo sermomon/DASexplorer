@@ -38,7 +38,7 @@ def _make_spinbox(value, min_val, max_val, step=1, decimals=0):
         sb.setSingleStep(float(step))
         sb.setDecimals(decimals)
         sb.setValue(float(value))
-    sb.setFixedWidth(90)
+    sb.setMinimumWidth(90) # sb.setFixedWidth(90)
     return sb
 
 
@@ -121,7 +121,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self.spin_channel = QtWidgets.QSpinBox()
         self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
         self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
         self.spin_channel.setToolTip("Jump to channel index")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
@@ -139,17 +139,17 @@ class SpectrogramDialog(QtWidgets.QDialog):
             "Higher = smoother appearance, slower rendering.")
         self.sb_vmin = QtWidgets.QDoubleSpinBox()
         self.sb_vmin.setRange(-300, 300); self.sb_vmin.setDecimals(1)
-        self.sb_vmin.setFixedWidth(80)
+        self.sb_vmin.setMinimumWidth(80) # self.sb_vmin.setFixedWidth(80)
         self.sb_vmax = QtWidgets.QDoubleSpinBox()
         self.sb_vmax.setRange(-300, 300); self.sb_vmax.setDecimals(1)
         self.sb_vmax.setFixedWidth(80)
 
         btn_apply = QtWidgets.QPushButton("Apply")
-        btn_apply.setFixedWidth(105)
+        btn_apply.setMinimumWidth(105) # btn_apply.setFixedWidth(105)
         btn_apply.clicked.connect(self._on_apply)
 
         btn_export = QtWidgets.QPushButton("Export")
-        btn_export.setFixedWidth(90)
+        btn_export.setMinimumWidth(90) # btn_export.setFixedWidth(90)
         btn_export.clicked.connect(self._export_png)
 
         param_row = _param_row(
@@ -192,7 +192,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self.histogram = pg.HistogramLUTWidget()
         self.histogram.setImageItem(self.image_item)
         self.histogram.gradient.setColorMap(self.cmap)
-        self.histogram.setFixedWidth(110)
+        self.histogram.setMinimumWidth(110) # self.histogram.setFixedWidth(110)
 
         # Scrollbar
         self.scrollbar = QtWidgets.QScrollBar(QtCore.Qt.Vertical)
@@ -393,18 +393,18 @@ class SpectralDialog(QtWidgets.QDialog):
         self.sb_nfft = _make_spinbox(2048, 16, 65536, 256)
         self.combo_win = QtWidgets.QComboBox()
         self.combo_win.addItems(['hann', 'hamming', 'blackman', 'bartlett', 'none'])
-        self.combo_win.setFixedWidth(100)
+        self.combo_win.setMinimumWidth(100) # self.combo_win.setFixedWidth(100)
         self.sb_fmax = _make_spinbox(
             self.dataset.fs_hz / 2, 1, self.dataset.fs_hz / 2, 1)
         self.combo_scale = QtWidgets.QComboBox()
         self.combo_scale.addItems(['Log', 'Linear'])   # Log first = default
-        self.combo_scale.setFixedWidth(96)
+        self.combo_scale.setMinimumWidth(96) # self.combo_scale.setFixedWidth(96)
         btn_apply = QtWidgets.QPushButton("Apply")
-        btn_apply.setFixedWidth(105)
+        btn_apply.setMinimumWidth(105) # btn_apply.setFixedWidth(105)
         btn_apply.clicked.connect(self._plot)
 
         btn_export = QtWidgets.QPushButton("Export")
-        btn_export.setFixedWidth(90)
+        btn_export.setMinimumWidth(90) # btn_export.setFixedWidth(90)
         btn_export.clicked.connect(self._export_png)
 
         param_row = _param_row(
@@ -564,7 +564,7 @@ class SignalDialog(QtWidgets.QDialog):
         self.spin_channel = QtWidgets.QSpinBox()
         self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
         self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
         self.spin_channel.setToolTip("Jump to channel index")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
@@ -842,7 +842,7 @@ class SignalFreqDialog(QtWidgets.QDialog):
         self.combo_window = QtWidgets.QComboBox()
         self.combo_window.addItems(_FFT_WINDOWS)
         self.combo_window.setCurrentText("Hann")
-        self.combo_window.setFixedWidth(100)
+        self.combo_window.setMinimumWidth(100) # self.combo_window.setFixedWidth(100)
         self.combo_window.currentIndexChanged.connect(lambda _: self._plot(self._cur_ch))
         ctrl_row.addWidget(self.combo_window)
 
@@ -853,7 +853,7 @@ class SignalFreqDialog(QtWidgets.QDialog):
         ctrl_row.addWidget(lbl_scale)
         self.combo_scale = QtWidgets.QComboBox()
         self.combo_scale.addItems(["dB (log)", "Linear"])
-        self.combo_scale.setFixedWidth(135)
+        self.combo_scale.setMinimumWidth(135) # self.combo_scale.setFixedWidth(135)
         self.combo_scale.currentIndexChanged.connect(self._on_scale_changed)
         ctrl_row.addWidget(self.combo_scale)
 
@@ -1118,7 +1118,7 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         self.spin_channel = QtWidgets.QSpinBox()
         self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
         self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
         self.spin_channel.setToolTip("Jump to channel index")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
@@ -1352,7 +1352,7 @@ class SignalPhaseDialog(QtWidgets.QDialog):
         self.spin_channel = QtWidgets.QSpinBox()
         self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
         self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
         self.spin_channel.setToolTip("Jump to channel index")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)

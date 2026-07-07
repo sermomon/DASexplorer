@@ -3,11 +3,12 @@
     "_comment2": "null means 'use full range from file'. Add new profiles by duplicating an existing block.",
     "default_profile": "optasense_v1",
     "profiles": {
-
         "hdas25_v1": {
             "label": "APL HDAS2.5 (.bin) UPV + APL",
             "interrogator": "hdas2.5_v1",
-            "file_extensions": [".bin"],
+            "file_extensions": [
+                ".bin"
+            ],
             "num_files": 1,
             "tmin_s": null,
             "tmax_s": null,
@@ -36,11 +37,12 @@
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0
         },
-
         "optasense_v1": {
             "label": "Luna Inn. OptaSense (.h5) OOI-RCA 2021",
             "interrogator": "optasense_v1",
-            "file_extensions": [".h5"],
+            "file_extensions": [
+                ".h5"
+            ],
             "tmin_s": null,
             "tmax_s": null,
             "dmin_m": null,
@@ -69,11 +71,12 @@
             "rgb_percentile": 90.0,
             "num_files": 1
         },
-
         "silixa_v1": {
             "label": "Silixa iDAS (.tdms) OOI-RCA 2021",
             "interrogator": "silixa_v1",
-            "file_extensions": [".tdms"],
+            "file_extensions": [
+                ".tdms"
+            ],
             "tmin_s": null,
             "tmax_s": null,
             "dmin_m": null,
@@ -101,11 +104,12 @@
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0
         },
-    
         "optodas_v1": {
             "label": "ASN OptoDAS (.hdf5) OOI-RCA 2024",
             "interrogator": "optodas_v1",
-            "file_extensions": [".hdf5"],
+            "file_extensions": [
+                ".hdf5"
+            ],
             "tmin_s": null,
             "tmax_s": null,
             "dmin_m": null,
@@ -133,44 +137,44 @@
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0
         },
-
         "svalbard_v1": {
             "label": "ASN OptoDAS (.mat) Svalbard-2020",
             "interrogator": "svalbard_v1",
-            "file_extensions": [".mat"],
+            "file_extensions": [
+                ".mat"
+            ],
             "tmin_s": null,
             "tmax_s": null,
             "dmin_m": null,
             "dmax_m": null,
-            "vmin": -5,
-            "vmax": 5,
+            "vmin": 0.00,
+            "vmax": 0.15,
             "colormap": "Rainbow",
-            "fmin_hz": 30.0, 
-            "fmax_hz": 43.0, 
+            "fmin_hz": 30.0,
+            "fmax_hz": 43.0,
             "fmax_offset_hz": 0.01,
-            "stride": 1, 
+            "stride": 1,
             "envelope": false,
-            "fk_cmin_ms": 1400.0, 
+            "fk_cmin_ms": 1400.0,
             "fk_cmax_ms": 1600.0,
-            "fk_fmin_hz": 25.0, 
-            "fk_fmax_hz": 45.0, 
+            "fk_fmin_hz": 25.0,
+            "fk_fmax_hz": 45.0,
             "fk_fmax_offset_hz": 0.01,
             "fk_envelope": false,
             "default_view": "raw",
-            "rgb_rmin_hz": 15.0, 
+            "rgb_rmin_hz": 15.0,
             "rgb_rmax_hz": 25.0,
-            "rgb_gmin_hz": 25.0, 
+            "rgb_gmin_hz": 25.0,
             "rgb_gmax_hz": 30.0,
-            "rgb_bmin_hz": 35.0, 
+            "rgb_bmin_hz": 35.0,
             "rgb_bmax_hz": 45.0,
             "rgb_percentile": 90.0
         }
-
     },
     "ui": {
         "_comment": "App-wide UI settings (independent of profile).",
         "colormap": "Rainbow",
         "panel_width_fraction": 0.22,
-        "theme": "dark"
+        "theme": "light"
     }
 }

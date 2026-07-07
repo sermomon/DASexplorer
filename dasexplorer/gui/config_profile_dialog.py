@@ -252,11 +252,7 @@ class ConfigurationProfileDialog(QtWidgets.QDialog):
             name_item = QtWidgets.QTableWidgetItem(display_name)
             name_item.setFlags(QtCore.Qt.ItemIsEnabled)
             name_item.setToolTip(f"config.json key: {key}")
-            bold = any(tag in display_name for tag in ("F-K", "RGB", "Profile", "Interrogator"))
-            if bold:
-                f = QtGui.QFont()
-                f.setBold(True)
-                name_item.setFont(f)
+            # bold removed — all parameter names shown in regular weight
             table.setItem(row, 0, name_item)
 
             val_item = QtWidgets.QTableWidgetItem("")

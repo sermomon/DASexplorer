@@ -204,6 +204,8 @@ class WaterfallWidget(QtWidgets.QWidget):
     roi_signal_env_requested   = QtCore.pyqtSignal(int)
     roi_signal_phase_requested = QtCore.pyqtSignal(int)
     roi_velocity_requested     = QtCore.pyqtSignal(int)
+    # Emitted when the user finishes dragging the histogram level triangles
+    levels_changed             = QtCore.pyqtSignal(float, float)  # (vmin, vmax)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -283,6 +285,9 @@ class WaterfallWidget(QtWidgets.QWidget):
 
         self.histogram = pg.HistogramLUTWidget()
         self.histogram.setImageItem(self.image_item)
+        self.histogram.setFixedWidth(100)
+        # Notify main_window when the user drags the level triangles
+        self.histogram.item.sigLevelChangeFinished.connect(self._on_levels_changed)
         self._apply_colormap("nipy_spectral")
 
         self.combo_cmap = QtWidgets.QComboBox()
@@ -1628,6 +1633,11 @@ class WaterfallWidget(QtWidgets.QWidget):
             yMin=y0, yMax=y1,
         )
         self.plot_widget.setRange(xRange=(x0, x1), yRange=(y0, y1), padding=0)
+
+    def _on_levels_changed(self) -> None:
+        """Emit levels_changed when the user moves the histogram triangles."""
+        vmin, vmax = self.histogram.item.getLevels()
+        self.levels_changed.emit(float(vmin), float(vmax))
 
     def apply_theme(self) -> None:
         """

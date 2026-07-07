@@ -38,7 +38,7 @@ _FALLBACK_EXTENSIONS = {
     "optodas":   [".hdf5"],
 }
 
-STRIDE_VALUES = [1, 2, 3, 4, 5, 10]
+STRIDE_VALUES = [1, 2, 3, 4, 5, 8, 10, 20]
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -72,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._ann_model = self._ann_models[AnnType.BBOX]
         self._export_dir  = ""
         self._current_data_path: str = ""
+        self._stride_reload: bool = False  # True when reloading triggered by stride change
         self._envelope: bool = False
         self._envelope_fk: bool = False
         self._tr_fk_base: np.ndarray = None
@@ -112,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.splitter.addWidget(self.left_widget)
         self.splitter.addWidget(main_area)
         self.splitter.setChildrenCollapsible(False)
-        self.left_widget.setMinimumWidth(220)
+        self.left_widget.setMinimumWidth(320)
 
         root_layout.addWidget(self.splitter)
 
@@ -599,15 +600,24 @@ class MainWindow(QtWidgets.QMainWindow):
     # --- Left panel ---
 
     def _build_left_panel(self) -> QtWidgets.QWidget:
-        left_widget = QtWidgets.QWidget()
-        left_layout = QtWidgets.QVBoxLayout(left_widget)
+        # Inner widget containing all left panel groups
+        inner = QtWidgets.QWidget()
+        left_layout = QtWidgets.QVBoxLayout(inner)
         left_layout.setSpacing(6)
         left_layout.setContentsMargins(0, 0, 0, 0)
 
         left_layout.addWidget(self._build_data_group())
         left_layout.addWidget(self._build_view_group())
         left_layout.addWidget(self._build_annotations_group(), 1)  # stretch=1: fills remaining space
-        return left_widget
+
+        # Wrap in a QScrollArea so the panel is usable on small or low-DPI screens
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidget(inner)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        return scroll
 
     # --- Main tabbed area ---
 
@@ -630,6 +640,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall.roi_signal_env_requested.connect(self._on_show_signal_env)
         self.waterfall.roi_signal_phase_requested.connect(self._on_show_signal_phase)
         self.waterfall.roi_velocity_requested.connect(self._on_show_velocity)
+        self.waterfall.levels_changed.connect(self._on_histogram_levels_changed)
         self.tab_widget.addTab(self.waterfall, "Raw")
 
         # FK tab — real WaterfallWidget sharing the same annotation model
@@ -753,6 +764,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for v in STRIDE_VALUES:
             self.combo_stride.addItem(str(v))
         self.combo_stride.setFixedWidth(78)
+        self.combo_stride.currentIndexChanged.connect(self._on_stride_changed)
         ctrl_row.addWidget(self.combo_stride)
 
         layout.addLayout(ctrl_row)
@@ -844,6 +856,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addLayout(self._build_range_row("B [Hz]", "spin_bmin", "spin_bmax", 15.0, 40.0, 0.0, 1e4, 0.5))
 
         pct_row = QtWidgets.QHBoxLayout()
+        pct_row.setAlignment(QtCore.Qt.AlignVCenter)
         lbl_pct = QtWidgets.QLabel("RGB percentile:")
         pct_row.addWidget(lbl_pct)
         self.spin_rgb_pct = QtWidgets.QDoubleSpinBox()
@@ -851,10 +864,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spin_rgb_pct.setDecimals(1)
         self.spin_rgb_pct.setValue(90.0)
         self.spin_rgb_pct.setFixedWidth(78)
+        self.spin_rgb_pct.setFixedHeight(22)
+        self.spin_rgb_pct.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.spin_rgb_pct.installEventFilter(self)
         pct_row.addWidget(self.spin_rgb_pct)
-        pct_row.addStretch()
         self._btn_apply_rgb_pct = QtWidgets.QPushButton("Apply")
-        self._btn_apply_rgb_pct.setFixedWidth(90)
+        self._btn_apply_rgb_pct.setFixedWidth(52)
+        self._btn_apply_rgb_pct.setFixedHeight(22)
         pct_row.addWidget(self._btn_apply_rgb_pct)
         layout.addLayout(pct_row)
 
@@ -896,7 +912,8 @@ class MainWindow(QtWidgets.QMainWindow):
         setattr(self, attr_max, spin_max)
 
         btn = QtWidgets.QPushButton("Apply")
-        btn.setFixedWidth(90)
+        btn.setFixedWidth(52)
+        btn.setFixedHeight(26)
         btn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
         btn_attr = {
@@ -929,8 +946,20 @@ class MainWindow(QtWidgets.QMainWindow):
         sb.setDecimals(6)
         sb.setSingleStep(step)
         sb.setMinimumWidth(65)
+        sb.setFixedHeight(22)
+        sb.setFocusPolicy(QtCore.Qt.StrongFocus)
+        sb.installEventFilter(self)
         sb.setValue(value)
         return sb
+
+    def eventFilter(self, obj, event):
+        """Block scroll wheel on spinboxes unless they have focus.
+        This prevents accidentally changing values while scrolling the left panel."""
+        if isinstance(obj, QtWidgets.QDoubleSpinBox):
+            if event.type() == QtCore.QEvent.Wheel and not obj.hasFocus():
+                event.ignore()
+                return True
+        return super().eventFilter(obj, event)
 
     def _build_annotations_group(self) -> QtWidgets.QGroupBox:
         group = QtWidgets.QGroupBox("Annotations")
@@ -1015,10 +1044,9 @@ class MainWindow(QtWidgets.QMainWindow):
         interrogator = _profile_cfg.get("interrogator", INTERROGATOR_TYPES[0])
         stride       = STRIDE_VALUES[self.combo_stride.currentIndex()]
 
-        self.lbl_file.setText("Loading file…")
-        self.lbl_file.setStyleSheet("color: #e0a020;")
-        # "Loading file…" is already shown above (lbl_file); no need to
-        # duplicate it in the bottom status bar.
+        if not getattr(self, "_stride_reload", False):
+            self.lbl_file.setText("Loading file…")
+            self.lbl_file.setStyleSheet("color: #e0a020;")
         QtWidgets.QApplication.processEvents()
 
         kwargs = {"stride": stride} if stride > 1 else {}
@@ -1204,9 +1232,12 @@ class MainWindow(QtWidgets.QMainWindow):
             sb.blockSignals(False)
 
         # Stride — match the configured value to the nearest available option
-        stride_val = stride_cfg if stride_cfg in STRIDE_VALUES else 1
+        # Always show the stride actually applied to the loaded dataset,
+        # not the profile default — the user controls stride via the combo.
+        actual_stride = int(getattr(dataset, "downsample", None) or 1)
+        stride_to_show = actual_stride if actual_stride in STRIDE_VALUES else 1
         self.combo_stride.blockSignals(True)
-        self.combo_stride.setCurrentIndex(STRIDE_VALUES.index(stride_val))
+        self.combo_stride.setCurrentIndex(STRIDE_VALUES.index(stride_to_show))
         self.combo_stride.blockSignals(False)
 
         # Colormap — apply to all three waterfall widgets simultaneously
@@ -1241,9 +1272,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lbl_file.setText(label)
         self.lbl_file.setStyleSheet("color: #4a9eff;")
 
-        # Per-interrogator defaults from config
-        interrogator = INTERROGATOR_TYPES[self.combo_interrogator.currentIndex()]
-        cfg      = get_interrogator_defaults(interrogator)
+        # Per-profile defaults from config — use active profile key, not just interrogator type
+        from dasexplorer.core.config import get_all_profiles, get_profile
+        _profile_keys = list(get_all_profiles().keys())
+        _profile_idx  = self.combo_interrogator.currentIndex()
+        _profile_key  = _profile_keys[_profile_idx] if _profile_idx < len(_profile_keys) else _profile_keys[0]
+        cfg           = get_profile(_profile_key)
+        interrogator  = cfg.get("interrogator", INTERROGATOR_TYPES[0])
         vmin_cfg = float(cfg.get("vmin", 0))
         vmax_cfg = float(cfg.get("vmax", 12))
         fmin_cfg = float(cfg.get("fmin_hz", 1.0))
@@ -1400,6 +1435,96 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         path = os.path.join(self._current_dir, item.text())
         self._load_path(path)
+
+    def _on_stride_changed(self, index: int) -> None:
+        """Apply new stride immediately when combo changes.
+
+        If stride_new > stride_cur and is an exact multiple, subsample in memory.
+        Otherwise reload from disk to recover the correct channels from the original.
+        """
+        if self.dataset is None:
+            return
+
+        stride_new = STRIDE_VALUES[index]
+        stride_cur = int(self.dataset.downsample or 1)
+
+        if stride_new == stride_cur:
+            return
+
+        if stride_new > stride_cur and stride_new % stride_cur == 0:
+            # Subsample in memory — no disk access needed
+            self._status_processing(f"Applying Stride={stride_new} …")
+            factor = stride_new // stride_cur
+            self.dataset.tr     = self.dataset.tr[::factor, :]
+            self.dataset.dist_m = self.dataset.dist_m[::factor]
+            self.dataset.downsample = stride_new
+            self._recalculate_annotation_indices()
+            self._reload_current_view()
+            self._status_done(f"Stride {stride_new} applied", timeout_ms=3000)
+        else:
+            # Reload from disk: only way to get the correct stride vs original
+            if self._current_data_path:
+                self._status_processing(f"Applying Stride={stride_new} (reloading) …")
+                self._stride_reload = True
+                try:
+                    self._load_path(self._current_data_path)
+                finally:
+                    self._stride_reload = False
+                QtCore.QTimer.singleShot(
+                    200,
+                    lambda s=stride_new: self._status_done(f"Stride {s} applied", timeout_ms=3000)
+                )
+
+    def _recalculate_annotation_indices(self) -> None:
+        """Update annotation index fields after a stride change.
+
+        Physical coordinates (t0, t1, d0, d1 in seconds/metres) are the
+        source of truth and are never modified. Only the index fields
+        (ti0, ti1, di0, di1) are recomputed against the current dist_m/time_s.
+        """
+        if self.dataset is None:
+            return
+        from dasexplorer.core.annotations import AnnotationModel
+        for model in self._ann_models.values():
+            model.time_s = self.dataset.time_s
+            model.dist_m = self.dataset.dist_m
+            for ann in model.annotations:
+                if hasattr(ann, 't0') and hasattr(ann, 'd0'):
+                    ti0, ti1, di0, di1 = AnnotationModel.compute_indices(
+                        ann.t0, ann.t1, ann.d0, ann.d1,
+                        self.dataset.time_s, self.dataset.dist_m,
+                    )
+                    ann.ti0, ann.ti1 = ti0, ti1
+                    ann.di0, ann.di1 = di0, di1
+
+    def _reload_current_view(self) -> None:
+        """Refresh waterfall and status bar after an in-memory stride change."""
+        if self.dataset is None:
+            return
+        vmin = self.spin_vmin.value()
+        vmax = self.spin_vmax.value()
+        fmin = self.spin_fmin.value()
+        fmax = self.spin_fmax.value()
+        nyq  = self.dataset.fs_hz / 2.0
+        can_filter = fmin > 0 and fmax > fmin and fmax < nyq
+        self._tr_fk_base = None
+        self._rgb_array  = None
+        self.waterfall.load_and_display(
+            self.dataset,
+            vmin=vmin, vmax=vmax,
+            fmin=fmin if can_filter else None,
+            fmax=fmax if can_filter else None,
+            envelope=self._envelope,
+        )
+        self.waterfall.hide_overlay()
+        dx = float(self.dataset.dist_m[1] - self.dataset.dist_m[0]) if self.dataset.n_dist > 1 else 0.0
+        self.lbl_channels.setText(f"Channels: {self.dataset.n_dist}")
+        self.lbl_spatial.setText(f"Spatial sampling: {dx:.1f} m")
+        actual_stride = int(self.dataset.downsample or 1)
+        stride_to_show = actual_stride if actual_stride in STRIDE_VALUES else 1
+        self.combo_stride.blockSignals(True)
+        self.combo_stride.setCurrentIndex(STRIDE_VALUES.index(stride_to_show))
+        self.combo_stride.blockSignals(False)
 
     def _on_interrogator_changed(self, index: int) -> None:
         if self._current_dir:
@@ -1694,6 +1819,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # ------------------------------------------------------------------
     # Cursor info
+    def _on_histogram_levels_changed(self, vmin: float, vmax: float) -> None:
+        """Sync spin_vmin/spin_vmax when the user drags the histogram triangles."""
+        self.spin_vmin.blockSignals(True)
+        self.spin_vmax.blockSignals(True)
+        self.spin_vmin.setValue(vmin)
+        self.spin_vmax.setValue(vmax)
+        self.spin_vmin.blockSignals(False)
+        self.spin_vmax.blockSignals(False)
+
     # ------------------------------------------------------------------
 
     def _on_cursor_info(self, text: str) -> None:

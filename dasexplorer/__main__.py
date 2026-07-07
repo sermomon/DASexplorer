@@ -36,7 +36,17 @@ def main():
         except Exception:
             pass
 
+    # Auto adaptation to screen sizes
+    from PyQt5 import QtCore
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
     app = QtWidgets.QApplication(sys.argv)
+
+    # Reduce default font size slightly for better fit on all screen sizes
+    font = app.font()
+    font.setPointSize(max(7, font.pointSize() - 1))
+    app.setFont(font)
 
     ui_cfg = get_ui_defaults()
     saved_theme = str(ui_cfg.get("theme", "dark")).lower()
