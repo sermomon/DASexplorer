@@ -32,7 +32,7 @@
 
 For full documentation, visit **[sermomon.github.io/dasexplorer](https://sermomon.github.io/dasexplorer/)**.
 
-<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/screenshot.png" alt="DASexplorer main window" width="900"/>
+<img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/screenshot-main-view.png" alt="DASexplorer main window" width="900"/>
 
 ## Citation
 
