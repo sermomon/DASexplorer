@@ -39,7 +39,7 @@ For full documentation, visit **[DASexplorer Documentation](https://sermomon.git
 If you use **DASexplorer** in your research, please cite:
 
 ```bibtex
-@software{morellmonzo2026dasexplorer,
+@software{dasexplorer2026,
   author    = {Morell-Monzó, Sergio},
   title     = {DASexplorer},
   year      = {2026},
