@@ -4,4 +4,5 @@ DAS Explorer version information.
 
 #__version__ = "1.0.0" # 2026/06/25
 #__version__ = "1.0.1" # 2026/06/29
-__version__ = "1.0.2" # 2026/07/03
+#__version__ = "1.0.2" # 2026/07/03
+__version__ = "1.0.3" # 2026/07/10
