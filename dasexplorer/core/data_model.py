@@ -53,8 +53,12 @@ class DASDataset:
     fs_hz: float
     start_datetime_utc: Optional[datetime.datetime] = None
     filename: Optional[str] = None
-    interrogator: Optional[str] = None
+    reader: Optional[str] = None
     downsample: Optional[int] = None
+    # Number of channels from the cable start to the first loaded channel,
+    # at stride=1. Used to convert local array indices to absolute cable indices.
+    # channel_offset = 0 means the array starts at the beginning of the cable.
+    channel_offset: int = 0
     metadata: dict = field(default_factory=dict)
     units: Optional[str] = None
 

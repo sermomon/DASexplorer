@@ -285,7 +285,10 @@ class WaterfallWidget(QtWidgets.QWidget):
 
         self.histogram = pg.HistogramLUTWidget()
         self.histogram.setImageItem(self.image_item)
-        self.histogram.setFixedWidth(100)
+        self.histogram.setFixedWidth(70)
+        # Narrow the colour bar and shrink the level triangles
+        self.histogram.item.gradient.setFixedWidth(14)
+        self.histogram.item.vb.setFixedWidth(36)
         # Notify main_window when the user drags the level triangles
         self.histogram.item.sigLevelChangeFinished.connect(self._on_levels_changed)
         self._apply_colormap("nipy_spectral")

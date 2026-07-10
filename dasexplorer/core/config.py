@@ -21,13 +21,15 @@ except Exception:
 # Built-in fallback defaults used when config.json is absent or corrupt.
 _PROFILE_DEFAULTS: dict = {
     "label":             "HDAS 2.5 — Default",
-    "interrogator":      "hdas2.5",
+    "reader":            "hdas2.5",
     "file_extensions":   [".bin"],
     "num_files":         1,
     "tmin_s":            None,
     "tmax_s":            None,
     "dmin_m":            None,
     "dmax_m":            None,
+    "read_dmin_m":       None,
+    "read_dmax_m":       None,
     "vmin":              0,
     "vmax":              12,
     "colormap":          "Rainbow",
@@ -84,7 +86,7 @@ def _migrate_legacy(cfg: dict) -> dict:
     if "profiles" in cfg or "interrogators" not in cfg:
         return cfg
 
-    from dasexplorer.core.readers import INTERROGATOR_TYPES, INTERROGATOR_LABELS
+    from dasexplorer.core.readers import READER_TYPES, READER_LABELS
     ext_map = {
         "hdas2.5":   [".bin"],
         "optasense": [".h5", ".hdf5"],
@@ -92,14 +94,14 @@ def _migrate_legacy(cfg: dict) -> dict:
     }
 
     profiles = {}
-    for intr_key, intr_label in zip(INTERROGATOR_TYPES, INTERROGATOR_LABELS):
+    for intr_key, intr_label in zip(READER_TYPES, READER_LABELS):
         old = cfg["interrogators"].get(intr_key, {})
         pid = f"{intr_key.replace('.', '')}_default"
         label = intr_label.split(" [")[0] + " — Default"
         p = {k: v for k, v in _PROFILE_DEFAULTS.items()}
         p.update({k: v for k, v in old.items() if not k.startswith("_")})
         p["label"]           = label
-        p["interrogator"]    = intr_key
+        p["reader"]          = intr_key
         p["file_extensions"] = ext_map.get(intr_key, [])
         profiles[pid] = p
 
@@ -150,6 +152,12 @@ def get_ui_defaults() -> dict:
     return {**ui_defaults, **{k: v for k, v in user.items() if not k.startswith("_")}}
 
 
+
+def get_interrogator_defaults(interrogator: str) -> dict:
+    """Legacy alias for get_reader_defaults."""
+    return get_reader_defaults(interrogator)
+
+
 def set_ui_theme(theme_name: str) -> None:
     """Persist the chosen UI theme to config.json."""
     global _cfg
@@ -176,13 +184,13 @@ def reload() -> None:
 
 
 # ── Backwards-compatibility shim ─────────────────────────────────────────────
-def get_interrogator_defaults(interrogator: str) -> dict:
+def get_reader_defaults(reader: str) -> dict:
     """
-    Legacy API: return defaults for the first profile whose interrogator
+    Return defaults for the first profile whose reader
     matches the given key.  Used by ConfigurationProfileDialog internals.
     """
     for p in get_all_profiles().values():
-        if p.get("interrogator") == interrogator:
+        if p.get("reader") == reader:
             return {**_PROFILE_DEFAULTS, **{k: v for k, v in p.items()
                                             if not k.startswith("_")}}
     return dict(_PROFILE_DEFAULTS)

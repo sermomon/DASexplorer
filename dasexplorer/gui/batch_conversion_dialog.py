@@ -1,7 +1,7 @@
 """
 Batch Conversion dialog for DAS Explorer.
 
-Converts a list of DAS files (one interrogator type) to NPZ or MAT format,
+Converts a list of DAS files (one reader type) to NPZ or MAT format,
 writing all metadata needed to reload each file as if it were the original.
 Conversion runs file by file with a progress bar; each converted file is
 saved to the selected output directory.
@@ -14,12 +14,12 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from dasexplorer.core.readers import (
-    INTERROGATOR_LABELS, INTERROGATOR_TYPES, read_das_file,
+    READER_LABELS, READER_TYPES, read_das_file,
 )
 from dasexplorer.gui import theme
 
 
-# File extensions per interrogator (mirrors main_window.py)
+# File extensions per reader (mirrors main_window.py)
 _FILE_EXTENSIONS = {
     "hdas2.5":   [".bin"],
     "optasense": [".h5", ".hdf5"],
@@ -275,7 +275,7 @@ class BatchConversionDialog(QtWidgets.QDialog):
         layout.setSpacing(8)
         layout.setContentsMargins(12, 4, 4, 4)
 
-        # ── Input directory + interrogator ──────────────────────────────
+        # ── Input directory + reader ──────────────────────────────
         dir_row = QtWidgets.QHBoxLayout()
         lbl_in = QtWidgets.QLabel("Input directory:")
         lbl_in.setStyleSheet("font-weight: bold;")
@@ -296,12 +296,12 @@ class BatchConversionDialog(QtWidgets.QDialog):
         lbl_intr.setStyleSheet("font-weight: bold;")
         dir_row.addWidget(lbl_intr)
 
-        self.combo_interrogator = QtWidgets.QComboBox()
-        for label in INTERROGATOR_LABELS:
-            self.combo_interrogator.addItem(label)
-        self.combo_interrogator.setFixedWidth(120)
-        self.combo_interrogator.currentIndexChanged.connect(self._on_interrogator_changed)
-        dir_row.addWidget(self.combo_interrogator)
+        self.combo_reader = QtWidgets.QComboBox()
+        for label in READER_LABELS:
+            self.combo_reader.addItem(label)
+        self.combo_reader.setFixedWidth(120)
+        self.combo_reader.currentIndexChanged.connect(self._on_interrogator_changed)
+        dir_row.addWidget(self.combo_reader)
 
         layout.addLayout(dir_row)
 
@@ -422,8 +422,8 @@ class BatchConversionDialog(QtWidgets.QDialog):
         self.file_list.clear()
         if not self._input_dir or not os.path.isdir(self._input_dir):
             return
-        intr_key = INTERROGATOR_TYPES[self.combo_interrogator.currentIndex()]
-        exts = _FILE_EXTENSIONS.get(intr_key, [])
+        reader_key = READER_TYPES[self.combo_reader.currentIndex()]
+        exts = _FILE_EXTENSIONS.get(reader_key, [])
         files = sorted([
             f for f in os.listdir(self._input_dir)
             if os.path.splitext(f)[1].lower() in exts
@@ -479,8 +479,8 @@ class BatchConversionDialog(QtWidgets.QDialog):
             self._set_status("No files selected.", error=True)
             return
 
-        intr_key = INTERROGATOR_TYPES[self.combo_interrogator.currentIndex()]
-        intr_label = INTERROGATOR_LABELS[self.combo_interrogator.currentIndex()]
+        reader_key = READER_TYPES[self.combo_reader.currentIndex()]
+        reader_label = READER_LABELS[self.combo_reader.currentIndex()]
 
         # Disable buttons during conversion
         self.btn_npz.setEnabled(False)
@@ -500,7 +500,7 @@ class BatchConversionDialog(QtWidgets.QDialog):
             )
 
             try:
-                ds = read_das_file(in_path, intr_key)
+                ds = read_das_file(in_path, reader_key)
             except Exception as exc:
                 errors.append(f"{fname}: read error — {exc}")
                 self.progress_bar.setValue(n)
@@ -526,7 +526,7 @@ class BatchConversionDialog(QtWidgets.QDialog):
                         fs_hz=np.float64(ds.fs_hz),
                         start_datetime_utc=start_iso,
                         filename=ds.filename or fname,
-                        interrogator=ds.interrogator or intr_key,
+                        reader=ds.reader or reader_key,
                         downsample=np.int64(ds.downsample or 1),
                         units=ds.units or "",
                         metadata_json=meta_json,
@@ -542,7 +542,7 @@ class BatchConversionDialog(QtWidgets.QDialog):
                             "fs_hz": float(ds.fs_hz),
                             "start_datetime_utc": start_iso,
                             "filename": ds.filename or fname,
-                            "interrogator": ds.interrogator or intr_key,
+                            "reader": ds.reader or reader_key,
                             "downsample": int(ds.downsample or 1),
                             "units": ds.units or "",
                             "metadata_json": meta_json,

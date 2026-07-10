@@ -15,8 +15,14 @@ import numpy as np
 import scipy.signal as sp
 
 
-def _band_to_uint8(tr: np.ndarray, fs_hz: float, fmin: float, fmax: float,
-                    percentile: float, order: int = 5) -> np.ndarray:
+def _band_to_uint8(
+    tr: np.ndarray,
+    fs_hz: float,
+    fmin: float,
+    fmax: float,
+    percentile: float,
+    order: int = 5
+) -> np.ndarray:
     """
     Filter tr to [fmin, fmax] Hz, take |signal|, scale by its own
     percentile, and return as uint8 in [0, 255]. Single band only --

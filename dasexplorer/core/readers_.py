@@ -34,7 +34,9 @@ def _ensure_tools_importable() -> None:
 def read_hdas25_v1(
     path: str,
     num_files: int = 1,
-    stride: Optional[int] = None
+    stride: Optional[int] = None,
+    read_dmin_m: Optional[float] = None,
+    read_dmax_m: Optional[float] = None,
 ) -> DASDataset:
     
     ######################################################################
@@ -76,8 +78,8 @@ def read_hdas25_v1(
         path=directory,
     )
 
-    fs_hz = 500.0
-    dx_m  = 10.0
+    fs_hz = hdas_data.trigger_frequency  # fs_hz = 500.0
+    dx_m = hdas_data.spatial_sampling_meters # dx_m  = 10.0
 
     tr     = hdas_data.matrix
     dist_m = np.arange(tr.shape[0]) * dx_m
@@ -89,6 +91,18 @@ def read_hdas25_v1(
         dist_m = dist_m[::stride]
         downsample = stride
 
+    # Spatial crop applied after stride.
+    # channel_offset = original (stride=1) cable index of the first kept channel.
+    channel_offset = 0
+    if read_dmin_m is not None or read_dmax_m is not None:
+        dmin = read_dmin_m if read_dmin_m is not None else float(dist_m[0])
+        dmax = read_dmax_m if read_dmax_m is not None else float(dist_m[-1])
+        mask = (dist_m >= dmin) & (dist_m <= dmax)
+        first_idx = int(np.argmax(mask))
+        channel_offset = first_idx * int(downsample or 1)
+        tr     = tr[mask, :]
+        dist_m = dist_m[mask]
+
     return DASDataset(
         tr=tr,
         dist_m=dist_m,
@@ -98,6 +112,7 @@ def read_hdas25_v1(
         filename=file_name,
         interrogator="hdas2.5",
         downsample=downsample,
+        channel_offset=channel_offset,
         metadata={"num_files": num_files, "dx_m": dx_m},
         units="DC",
     )
@@ -107,6 +122,8 @@ def read_optasense_v1(
     path: str,
     selected_channels_m: Optional[list] = None,
     stride: Optional[int] = None,
+    read_dmin_m: Optional[float] = None,
+    read_dmax_m: Optional[float] = None,
 ) -> DASDataset:
     
     ######################################################################
@@ -151,7 +168,9 @@ def read_optasense_v1(
     nx    = metadata["nx"]
 
     if selected_channels_m is None:
-        selected_channels_m = [0, nx * dx_m, dx_m]
+        start_m = read_dmin_m if read_dmin_m is not None else 0.0
+        stop_m  = read_dmax_m if read_dmax_m is not None else nx * dx_m
+        selected_channels_m = [start_m, stop_m, dx_m]
 
     selected_channels = [int(c // dx_m) for c in selected_channels_m]
 
@@ -173,6 +192,7 @@ def read_optasense_v1(
     time_s = np.arange(tr.shape[1]) / fs_hz
 
     downsample = None
+    channel_offset = int(round(start_dist_m / dx_m))
     if stride is not None and stride > 1:
         tr     = tr[::stride, :]
         dist_m = dist_m[::stride]
@@ -187,6 +207,7 @@ def read_optasense_v1(
         filename=os.path.basename(path),
         interrogator="optasense",
         downsample=downsample,
+        channel_offset=channel_offset,
         metadata={
             "gauge_length_m":      metadata.get("GL"),
             "scale_factor":        metadata.get("scale_factor"),
@@ -199,6 +220,8 @@ def read_optasense_v1(
 def read_idas_v1(
     path: str,
     stride: Optional[int] = None,
+    read_dmin_m: Optional[float] = None,
+    read_dmax_m: Optional[float] = None,
 ) -> DASDataset:
 
     ######################################################################
@@ -272,6 +295,18 @@ def read_idas_v1(
         dist_m = dist_m[::stride]
         downsample = stride
 
+    # Spatial crop applied after stride.
+    # channel_offset = original (stride=1) cable index of the first kept channel.
+    channel_offset = 0
+    if read_dmin_m is not None or read_dmax_m is not None:
+        dmin = read_dmin_m if read_dmin_m is not None else float(dist_m[0])
+        dmax = read_dmax_m if read_dmax_m is not None else float(dist_m[-1])
+        mask = (dist_m >= dmin) & (dist_m <= dmax)
+        first_idx = int(np.argmax(mask))
+        channel_offset = first_idx * int(downsample or 1)
+        tr     = tr[mask, :]
+        dist_m = dist_m[mask]
+
     return DASDataset(
         tr=tr,
         dist_m=dist_m,
@@ -281,6 +316,7 @@ def read_idas_v1(
         filename=fname,
         interrogator="silixa",
         downsample=downsample,
+        channel_offset=channel_offset,
         metadata={
             "dx_m": dx_m,
             "gauge_length_m": gauge_length_m,
@@ -501,6 +537,8 @@ def read_optodas_v2(
 def read_svalbard_v1(
     path: str,
     stride: Optional[int] = None,
+    read_dmin_m: Optional[float] = None,
+    read_dmax_m: Optional[float] = None,
 ) -> DASDataset:
 
     ######################################################################
@@ -581,6 +619,18 @@ def read_svalbard_v1(
         dist_m = dist_m[::stride]
         downsample = stride
 
+    # Spatial crop applied after stride.
+    # channel_offset = original (stride=1) cable index of the first kept channel.
+    channel_offset = 0
+    if read_dmin_m is not None or read_dmax_m is not None:
+        dmin = read_dmin_m if read_dmin_m is not None else float(dist_m[0])
+        dmax = read_dmax_m if read_dmax_m is not None else float(dist_m[-1])
+        mask = (dist_m >= dmin) & (dist_m <= dmax)
+        first_idx = int(np.argmax(mask))
+        channel_offset = first_idx * int(downsample or 1)
+        tr     = tr[mask, :]
+        dist_m = dist_m[mask]
+
     return DASDataset(
         tr=tr,
         dist_m=dist_m,
@@ -590,6 +640,7 @@ def read_svalbard_v1(
         filename=os.path.basename(path),
         interrogator="svalbard_v1",
         downsample=downsample,
+        channel_offset=channel_offset,
         metadata={
             "dx_m": dx_m,
             "gauge_length_m": gl_m,

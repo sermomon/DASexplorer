@@ -1,0 +1,108 @@
+site_name: DASexplorer
+site_description: Documentation for DASexplorer, a desktop application for DAS data visualization, annotation, and analysis.
+site_url: https://sermomon.github.io/dasexplorer/
+repo_url: https://github.com/sermomon/dasexplorer
+repo_name: sermomon/DASexplorer
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: img/icon_1.png
+  favicon: img/icon_1.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_files:
+  - img/
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - glightbox
+  - git-revision-date-localized:
+      type: timeago
+      enable_creation_date: true
+      fallback_to_build_date: true
+  - git-committers:
+      repository: sermomon/dasexplorer
+      branch: main
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
+            members_order: source
+            heading_level: 2
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Getting started: getting-started.md
+  - Reading profiles:
+      - What is a reading profile?: what-is-a-profile.md
+      - Adding a reading profile: profiles.md
+      - Built-in readers:
+          - Overview: readers/index.md
+          - HDAS 2.5 (.bin) UPV + APL: readers/hdas.md
+          - OptaSense (.h5) OOI-RCA 2021: readers/optasense.md
+          - iDAS (.tdms) OOI-RCA 2021: readers/idas.md
+          - OptoDAS (.hdf5) OOI-RCA 2024: readers/optodas.md
+          - OptoDAS (.mat) Svalbard 2020: readers/svalbard.md
+  - Annotation:
+      - Overview: annotation/index.md
+      - Bounding boxes (BBox): annotation/bbox.md
+      - Oriented boxes (OBBox): annotation/obbox.md
+      - Keypoints: annotation/keypoints.md
+      - Lines: annotation/line.md
+  - Analysis tools: basic-analysis-tools.md
+  - Batch conversion: batch-conversion.md
+  - Configuration: configuration.md
+  - License: license.md
+  - Citation: citation.md

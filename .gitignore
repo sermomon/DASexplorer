@@ -13,6 +13,8 @@ build/
 
 # Local DAS data directories (not shared)
 dasexplorer/datasets/
+dasexplorer/data/
+dasexplorer/assets/
 
 # Virtual environments
 .venv/

@@ -5,7 +5,6 @@
     "profiles": {
         "hdas25_v1": {
             "label": "APL HDAS2.5 (.bin) UPV + APL",
-            "interrogator": "hdas2.5_v1",
             "file_extensions": [
                 ".bin"
             ],
@@ -35,11 +34,13 @@
             "rgb_gmax_hz": 15.0,
             "rgb_bmin_hz": 15.0,
             "rgb_bmax_hz": 40.0,
-            "rgb_percentile": 90.0
+            "rgb_percentile": 90.0,
+            "read_dmin_m": null,
+            "read_dmax_m": null,
+            "reader": "hdas2.5_v1"
         },
         "optasense_v1": {
             "label": "Luna Inn. OptaSense (.h5) OOI-RCA 2021",
-            "interrogator": "optasense_v1",
             "file_extensions": [
                 ".h5"
             ],
@@ -69,11 +70,13 @@
             "rgb_bmin_hz": 15.0,
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0,
-            "num_files": 1
+            "num_files": 1,
+            "read_dmin_m": 20000,
+            "read_dmax_m": 65000,
+            "reader": "optasense_v1"
         },
         "silixa_v1": {
             "label": "Silixa iDAS (.tdms) OOI-RCA 2021",
-            "interrogator": "silixa_v1",
             "file_extensions": [
                 ".tdms"
             ],
@@ -102,11 +105,13 @@
             "rgb_gmax_hz": 15.0,
             "rgb_bmin_hz": 15.0,
             "rgb_bmax_hz": 40.0,
-            "rgb_percentile": 90.0
+            "rgb_percentile": 90.0,
+            "read_dmin_m": null,
+            "read_dmax_m": null,
+            "reader": "silixa_v1"
         },
         "optodas_v1": {
             "label": "ASN OptoDAS (.hdf5) OOI-RCA 2024",
-            "interrogator": "optodas_v1",
             "file_extensions": [
                 ".hdf5"
             ],
@@ -135,11 +140,13 @@
             "rgb_gmax_hz": 15.0,
             "rgb_bmin_hz": 15.0,
             "rgb_bmax_hz": 40.0,
-            "rgb_percentile": 90.0
+            "rgb_percentile": 90.0,
+            "read_dmin_m": null,
+            "read_dmax_m": null,
+            "reader": "optodas_v1"
         },
         "svalbard_v1": {
             "label": "ASN OptoDAS (.mat) Svalbard-2020",
-            "interrogator": "svalbard_v1",
             "file_extensions": [
                 ".mat"
             ],
@@ -147,7 +154,7 @@
             "tmax_s": null,
             "dmin_m": null,
             "dmax_m": null,
-            "vmin": 0.00,
+            "vmin": 0.0,
             "vmax": 0.15,
             "colormap": "Rainbow",
             "fmin_hz": 30.0,
@@ -168,13 +175,17 @@
             "rgb_gmax_hz": 30.0,
             "rgb_bmin_hz": 35.0,
             "rgb_bmax_hz": 45.0,
-            "rgb_percentile": 90.0
+            "rgb_percentile": 90.0,
+            "read_dmin_m": null,
+            "read_dmax_m": null,
+            "reader": "svalbard_v1"
         }
     },
     "ui": {
-        "_comment": "App-wide UI settings (independent of profile).",
-        "colormap": "Rainbow",
-        "panel_width_fraction": 0.22,
-        "theme": "light"
+        "theme": "dark",
+        "hidpi_scaling": false,
+        "font_size_offset": 0,
+        "left_panel_scroll": false,
+        "compact_spinboxes": false
     }
 }

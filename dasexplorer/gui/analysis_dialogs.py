@@ -192,7 +192,9 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self.histogram = pg.HistogramLUTWidget()
         self.histogram.setImageItem(self.image_item)
         self.histogram.gradient.setColorMap(self.cmap)
-        self.histogram.setMinimumWidth(110) # self.histogram.setFixedWidth(110)
+        self.histogram.setFixedWidth(70)
+        self.histogram.item.gradient.setFixedWidth(14)
+        self.histogram.item.vb.setFixedWidth(36)
 
         # Scrollbar
         self.scrollbar = QtWidgets.QScrollBar(QtCore.Qt.Vertical)
@@ -1646,7 +1648,9 @@ class VelocityDialog(QtWidgets.QDialog):
         self.histogram = pg.HistogramLUTWidget()
         self.histogram.setImageItem(self.image_item)
         self.histogram.gradient.setColorMap(self.cmap)
-        self.histogram.setFixedWidth(110)
+        self.histogram.setFixedWidth(70)
+        self.histogram.item.gradient.setFixedWidth(14)
+        self.histogram.item.vb.setFixedWidth(36)
 
         # Bbox boundary (yellow dashed rectangle lines)
         pen_box = pg.mkPen(color=(255, 220, 0), width=1.5,

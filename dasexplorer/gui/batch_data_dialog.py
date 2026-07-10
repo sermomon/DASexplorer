@@ -9,7 +9,7 @@ import os
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
-from dasexplorer.core.readers import INTERROGATOR_LABELS, INTERROGATOR_TYPES, read_das_file
+from dasexplorer.core.readers import READER_LABELS, READER_TYPES, read_das_file
 from dasexplorer.gui import theme
 
 _FILE_EXTENSIONS = {
@@ -39,7 +39,7 @@ class BatchDataDialog(QtWidgets.QDialog):
         layout.setSpacing(8)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # ── Input directory + interrogator ──────────────────────────────
+        # ── Input directory + reader ──────────────────────────────
         dir_row = QtWidgets.QHBoxLayout()
         lbl_in = QtWidgets.QLabel("Input directory:")
         lbl_in.setStyleSheet("font-weight: bold;")
@@ -55,12 +55,12 @@ class BatchDataDialog(QtWidgets.QDialog):
         lbl_intr = QtWidgets.QLabel("Interrogator:")
         lbl_intr.setStyleSheet("font-weight: bold;")
         dir_row.addWidget(lbl_intr)
-        self.combo_interrogator = QtWidgets.QComboBox()
-        for label in INTERROGATOR_LABELS:
-            self.combo_interrogator.addItem(label)
-        self.combo_interrogator.setMinimumWidth(110)
-        self.combo_interrogator.currentIndexChanged.connect(self._refresh_file_list)
-        dir_row.addWidget(self.combo_interrogator)
+        self.combo_reader = QtWidgets.QComboBox()
+        for label in READER_LABELS:
+            self.combo_reader.addItem(label)
+        self.combo_reader.setMinimumWidth(110)
+        self.combo_reader.currentIndexChanged.connect(self._refresh_file_list)
+        dir_row.addWidget(self.combo_reader)
         layout.addLayout(dir_row)
 
         # ── File list ───────────────────────────────────────────────────
@@ -152,8 +152,8 @@ class BatchDataDialog(QtWidgets.QDialog):
         self.file_list.clear()
         if not self._input_dir or not os.path.isdir(self._input_dir):
             return
-        intr = INTERROGATOR_TYPES[self.combo_interrogator.currentIndex()]
-        exts = _FILE_EXTENSIONS.get(intr, [])
+        reader = READER_TYPES[self.combo_reader.currentIndex()]
+        exts = _FILE_EXTENSIONS.get(reader, [])
         files = sorted([
             f for f in os.listdir(self._input_dir)
             if os.path.splitext(f)[1].lower() in exts
@@ -207,7 +207,7 @@ class BatchDataDialog(QtWidgets.QDialog):
             self._set_status("No files selected.", error=True)
             return
 
-        intr = INTERROGATOR_TYPES[self.combo_interrogator.currentIndex()]
+        reader = READER_TYPES[self.combo_reader.currentIndex()]
         self.btn_npz.setEnabled(False)
         self.btn_mat.setEnabled(False)
         self.progress_bar.setMaximum(len(files))
@@ -220,7 +220,7 @@ class BatchDataDialog(QtWidgets.QDialog):
             out_path = os.path.join(out_dir, f"{stem}.{fmt}")
             self._set_status(f"[{n}/{len(files)}] Reading {fname}…", dim=True)
             try:
-                ds = read_das_file(in_path, intr)
+                ds = read_das_file(in_path, reader)
             except Exception as exc:
                 errors.append(f"{fname}: read error — {exc}")
                 self.progress_bar.setValue(n)
@@ -240,7 +240,7 @@ class BatchDataDialog(QtWidgets.QDialog):
                         fs_hz=np.float64(ds.fs_hz),
                         start_datetime_utc=start_iso,
                         filename=ds.filename or fname,
-                        interrogator=ds.interrogator or intr,
+                        reader=ds.reader or reader,
                         downsample=np.int64(ds.downsample or 1),
                         units=ds.units or "",
                         metadata_json=meta_json,
@@ -252,7 +252,7 @@ class BatchDataDialog(QtWidgets.QDialog):
                         fs_hz=float(ds.fs_hz),
                         start_datetime_utc=start_iso,
                         filename=ds.filename or fname,
-                        interrogator=ds.interrogator or intr,
+                        reader=ds.reader or reader,
                         downsample=int(ds.downsample or 1),
                         units=ds.units or "",
                         metadata_json=meta_json,

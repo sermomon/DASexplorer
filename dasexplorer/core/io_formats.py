@@ -51,7 +51,8 @@ def read_npz(path: str) -> DASDataset:
                 start_datetime_utc = None
 
         filename     = str(npz["filename"]) if "filename" in npz else os.path.basename(path)
-        interrogator = str(npz["interrogator"]) if "interrogator" in npz else None
+        reader = (str(npz["reader"]) if "reader" in npz else
+                  str(npz["interrogator"]) if "interrogator" in npz else None)
         downsample   = int(npz["downsample"]) if "downsample" in npz else None
         units        = str(npz["units"]) if "units" in npz else None
 
@@ -69,7 +70,7 @@ def read_npz(path: str) -> DASDataset:
         fs_hz=fs_hz,
         start_datetime_utc=start_datetime_utc,
         filename=filename,
-        interrogator=interrogator or None,
+        reader=reader or None,
         downsample=downsample,
         metadata=metadata,
         units=units or None,
@@ -129,7 +130,8 @@ def read_mat(path: str) -> DASDataset:
             start_datetime_utc = None
 
     filename     = _mat_text(mat["filename"]) if "filename" in mat else os.path.basename(path)
-    interrogator = _mat_text(mat["interrogator"]) if "interrogator" in mat else ""
+    reader = (_mat_text(mat["reader"]) if "reader" in mat else
+              _mat_text(mat["interrogator"]) if "interrogator" in mat else "")
     downsample_raw = _mat_scalar(mat["downsample"]) if "downsample" in mat else None
     downsample   = int(downsample_raw) if downsample_raw is not None else None
     units        = _mat_text(mat["units"]) if "units" in mat else ""
@@ -148,7 +150,7 @@ def read_mat(path: str) -> DASDataset:
         fs_hz=fs_hz,
         start_datetime_utc=start_datetime_utc,
         filename=filename or os.path.basename(path),
-        interrogator=interrogator or None,
+        reader=reader or None,
         downsample=downsample,
         metadata=metadata,
         units=units or None,

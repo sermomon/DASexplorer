@@ -15,7 +15,7 @@ from dasexplorer.core.config import (
     _CONFIG_PATH, get_all_profiles, get_profile,
     save_profiles, get_default_profile_key, reload as config_reload,
 )
-from dasexplorer.core.readers import INTERROGATOR_TYPES, INTERROGATOR_LABELS
+from dasexplorer.core.readers import READER_TYPES, READER_LABELS
 from dasexplorer.gui import theme
 
 
@@ -27,8 +27,8 @@ _FIELDS = [
     ("label",            "Profile label",
      "Name shown in the Profile combo box.",
      "str"),
-    ("interrogator",     "Interrogator",
-     f"Reader function to use. Options: {', '.join(INTERROGATOR_TYPES)}.",
+    ("reader",           "Reader",
+     f"Reader function to use. Options: {', '.join(READER_TYPES)}.",
      "str"),
     ("file_extensions",  "File extensions",
      "Comma-separated list of file extensions to show (e.g. .bin  or  .h5,.hdf5).",
@@ -48,6 +48,12 @@ _FIELDS = [
      "float_or_null"),
     ("dmax_m",           "Distance max [m]",
      "Default end distance. null = end of cable.",
+     "float_or_null"),
+    ("read_dmin_m",      "Read d-min [m]",
+     "Load only channels from this distance onward. null = cable start. Reduces memory.",
+     "float_or_null"),
+    ("read_dmax_m",      "Read d-max [m]",
+     "Load only channels up to this distance. null = cable end. Reduces memory.",
      "float_or_null"),
     # ---- Color scale ----
     ("vmin",             "Color scale min",
