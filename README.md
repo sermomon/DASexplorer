@@ -36,7 +36,7 @@ For full documentation, visit **[DASexplorer Documentation](https://sermomon.git
 
 ## Citation
 
-If you use DASexplorer in your research, please cite:
+If you use **DASexplorer** in your research, please cite:
 
 ```bibtex
 @software{morellmonzo2026dasexplorer,
