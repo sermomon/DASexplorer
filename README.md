@@ -31,8 +31,6 @@
 
 The full documentation is available at **[https://sermomon.github.io/DASexplorer/](https://sermomon.github.io/DASexplorer/)**
 
-For full documentation, visit the **[Documentation](https://sermomon.github.io/DASexplorer/)**.
-
 <img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/screenshot-main-view.png" alt="DASexplorer main window" width="900"/>
 
 ## Citation
