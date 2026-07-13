@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/logo.png" alt="DASexplorer Logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/logo.png" alt="DASexplorer Logo" width="250"/>
 
   <h1></h1>
 
