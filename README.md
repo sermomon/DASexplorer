@@ -30,7 +30,7 @@
 **DASexplorer** is an open-source desktop application for loading, visualising, filtering, and annotating Distributed Acoustic Sensing (DAS) recordings from multiple interrogator systems.
 
 
-For full documentation, visit **[DASexplorer Documentation](https://sermomon.github.io/DASexplorer/)**.
+For full documentation, visit the **[Documentation](https://sermomon.github.io/DASexplorer/)**.
 
 <img src="https://raw.githubusercontent.com/sermomon/DASexplorer/main/dasexplorer/icons/screenshot-main-view.png" alt="DASexplorer main window" width="900"/>
 
