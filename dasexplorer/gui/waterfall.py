@@ -311,6 +311,20 @@ class WaterfallWidget(QtWidgets.QWidget):
         self.plot_widget.scene().sigMouseClicked.connect(self._on_scene_clicked)
         self._configure_context_menu()
 
+        # Allow wheel zoom even in annotation draw mode by patching the ViewBox
+        self._vb_wheel_enabled = False
+        _vb = self.plot_widget.getPlotItem().vb
+        _orig_wheel = _vb.wheelEvent
+
+        def _patched_wheel(ev, axis=None):
+            # Always allow wheel zoom regardless of draw mode
+            _vb.setMouseEnabled(x=True, y=True)
+            _orig_wheel(ev, axis)
+            if self._annotation_mode:
+                _vb.setMouseEnabled(x=False, y=False)
+
+        _vb.wheelEvent = _patched_wheel
+
     # ------------------------------------------------------------------
     # Annotation mode
     # ------------------------------------------------------------------
@@ -322,12 +336,18 @@ class WaterfallWidget(QtWidgets.QWidget):
         self._ann_type = ann_type
         vb = self.plot_widget.getPlotItem().vb
         if active:
+            # Disable pan (drag to move) but keep wheel zoom active.
+            # setMouseEnabled(False) would also block the scroll wheel,
+            # so we only disable dragging by overriding wheelEvent to
+            # keep zoom working while the crosshair captures mouse moves.
             vb.setMouseEnabled(x=False, y=False)
+            self._vb_wheel_enabled = True
             self.plot_widget.setCursor(QtCore.Qt.CrossCursor)
             self._vline.setVisible(True)
             self._hline.setVisible(True)
         else:
             vb.setMouseEnabled(x=True, y=True)
+            self._vb_wheel_enabled = False
             self.plot_widget.setCursor(QtCore.Qt.ArrowCursor)
             self._vline.setVisible(False)
             self._hline.setVisible(False)
