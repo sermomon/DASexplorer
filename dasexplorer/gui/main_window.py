@@ -223,9 +223,15 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_info = info_bar.addMenu("Help")
         act_docs    = menu_info.addAction("Documentation")
         act_about   = menu_info.addAction("About DASexplorer")
-        act_docs.setEnabled(False)
+        act_docs.triggered.connect(self._open_docs)
         act_about.triggered.connect(self._show_about_dialog)
         menubar.setCornerWidget(info_bar, QtCore.Qt.TopRightCorner)
+
+    def _open_docs(self) -> None:
+        """Open the online documentation in the default browser."""
+        from PyQt5.QtGui import QDesktopServices
+        from PyQt5.QtCore import QUrl
+        QDesktopServices.openUrl(QUrl("https://sermomon.github.io/DASexplorer/"))
 
     def _show_about_dialog(self) -> None:
         about_path = os.path.join(
