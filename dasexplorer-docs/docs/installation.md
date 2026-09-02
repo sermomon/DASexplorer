@@ -16,7 +16,7 @@ DASexplorer is published on [PyPI](https://pypi.org/project/dasexplorer/) and ca
     pip install dasexplorer==1.x
     ```
 
-This will automatically install compatible versions of all direct dependencies: `PyQt5`, `pyqtgraph`, `numpy`, `h5py`, and `scipy`.
+This will automatically install compatible versions of all direct dependencies: `PyQt5`, `pyqtgraph`, `numpy`, `scipy`, `h5py`, and `Pillow`.
 
 !!! tip
 
@@ -47,3 +47,11 @@ dasexplorer
 ```
 
 If everything is set up correctly, the DASexplorer main window should open.
+
+## HDAS 2.5 — proprietary binary
+
+Reading `.bin` files from the Aragón Photonics HDAS 2.5 interrogator requires a proprietary binary (`hdas_reader*.pyd` on Windows, `hdas_reader*.so` on Linux) provided by Aragón Photonics Lab. This binary is not distributed via PyPI and must be placed manually in the `dasexplorer/tools/apl/` directory inside your installation:
+
+```bash
+python -c "import dasexplorer, os; print(os.path.join(os.path.dirname(dasexplorer.__file__), 'tools', 'apl'))"
+```
