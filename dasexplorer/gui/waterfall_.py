@@ -655,13 +655,11 @@ class WaterfallWidget(QtWidgets.QWidget):
                 self._live_items.append(poly)
 
     def add_annotation_roi(self, index: int, t0: float, t1: float,
-                            d0: float, d1: float, label: str = "",
-                            flat_idx: int = -1) -> None:
+                            d0: float, d1: float, label: str = "") -> None:
         """Draw a BBox annotation on the waterfall."""
-        fi = flat_idx if flat_idx >= 0 else index
         roi = AnnotationROI(
             [t0, d0], [t1 - t0, d1 - d0],
-            ann_index=fi,
+            ann_index=index,
             pen=_bbox_pen(), movable=False, resizable=False,
         )
         roi.sigRightClicked.connect(self._on_roi_right_clicked)
@@ -677,7 +675,7 @@ class WaterfallWidget(QtWidgets.QWidget):
         text.setPos(t0, d1)
         self.plot_widget.addItem(text)
 
-        self._annotation_rois.append((roi, text, fi))
+        self._annotation_rois.append((roi, text, index))
 
     def update_annotation_label(self, index: int, label: str) -> None:
         """Update the text label of the ROI at the given index."""

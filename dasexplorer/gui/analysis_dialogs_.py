@@ -102,8 +102,12 @@ class SpectrogramDialog(QtWidgets.QDialog):
         dist_local = dataset.dist_m[:n_tr]
         di0 = int(np.clip(np.searchsorted(dist_local, ann.d0), 0, n_tr - 1))
         di1 = int(np.clip(np.searchsorted(dist_local, ann.d1), 0, n_tr - 1))
-        if di1 <= di0:
-            di1 = min(di0 + 1, n_tr - 1)
+        # Guarantee at least MIN_CHANNELS so scrollbar and average are meaningful
+        MIN_CHANNELS = 5
+        if di1 - di0 < MIN_CHANNELS:
+            mid = (di0 + di1) // 2
+            di0 = max(0, mid - MIN_CHANNELS // 2)
+            di1 = min(n_tr - 1, di0 + MIN_CHANNELS)
         self._di0 = di0
         self._di1 = di1
         self._cur_ch = (di0 + di1) // 2
@@ -377,8 +381,12 @@ class SpectralDialog(QtWidgets.QDialog):
         n_tr = len(dist_local)
         di0 = int(np.clip(np.searchsorted(dist_local, ann.d0), 0, n_tr - 1))
         di1 = int(np.clip(np.searchsorted(dist_local, ann.d1), 0, n_tr - 1))
-        if di1 <= di0:
-            di1 = min(di0 + 1, n_tr - 1)
+        # Guarantee at least MIN_CHANNELS for a meaningful average spectrum
+        MIN_CHANNELS = 5
+        if di1 - di0 < MIN_CHANNELS:
+            mid = (di0 + di1) // 2
+            di0 = max(0, mid - MIN_CHANNELS // 2)
+            di1 = min(n_tr - 1, di0 + MIN_CHANNELS)
 
         time_local = dataset.time_s
         n_t = len(time_local)

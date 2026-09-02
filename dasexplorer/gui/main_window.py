@@ -1894,9 +1894,10 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         model = self._ann_models[AnnType.BBOX]
         model.add(ann)
-        idx = len(model) - 1
+        idx  = len(model) - 1
+        flat = self._flat_idx(AnnType.BBOX, idx)
         for wf in self._waterfalls():
-            wf.add_annotation_roi(idx, t0, t1, d0, d1, label=event_id)
+            wf.add_annotation_roi(idx, t0, t1, d0, d1, label=event_id, flat_idx=flat)
         self.ann_widget.refresh_table(self._ann_models)
         self._status_done(f"BBox added: [{event_id}]  t={t0:.2f}–{t1:.2f}s  d={d0:.0f}–{d1:.0f}m")
 
@@ -1922,9 +1923,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         model = self._ann_models[AnnType.OBB]
         model.add(ann)
-        idx = len(model) - 1
-        for wf in self._waterfalls():
-            wf.add_obb_roi(idx, cx, cy, w, h, angle_deg, label=event_id)
+        self._redraw_all_rois()
         self.ann_widget.refresh_table(self._ann_models)
         self._status_done(f"OBB added: [{event_id}]  cx={cx:.2f}s  cy={cy:.0f}m  θ={angle_deg:.1f}°")
 
@@ -1951,9 +1950,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         model = self._ann_models[AnnType.KP]
         model.add(ann)
-        idx = len(model) - 1
-        for wf in self._waterfalls():
-            wf.add_kp_roi(idx, pts_t, pts_d, label=event_id)
+        self._redraw_all_rois()
         self.ann_widget.refresh_table(self._ann_models)
         self._status_done(f"Keypoints added: [{event_id}]  {len(pts_t)} point(s)")
 
@@ -1980,9 +1977,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         model = self._ann_models[AnnType.LINE]
         model.add(ann)
-        idx = len(model) - 1
-        for wf in self._waterfalls():
-            wf.add_line_roi(idx, pts_t, pts_d, label=event_id)
+        self._redraw_all_rois()
         self.ann_widget.refresh_table(self._ann_models)
         self._status_done(f"Line added: [{event_id}]  {len(pts_t)} vertices")
 
@@ -2075,17 +2070,45 @@ class MainWindow(QtWidgets.QMainWindow):
             return self.waterfall_rgb
 
     def _on_annotation_delete(self, index: int) -> None:
-        # Find which model this row index belongs to
+        # Find which model this flat index belongs to
         row = 0
         for ann_type in (AnnType.BBOX, AnnType.OBB, AnnType.KP, AnnType.LINE):
             model = self._ann_models[ann_type]
             if row + len(model) > index:
                 local_idx = index - row
                 model.remove(local_idx)
-                self._all_waterfalls_remove_roi(index)
+                # Redraw all ROIs from scratch to guarantee flat indices are
+                # always consistent regardless of draw order.
+                self._redraw_all_rois()
                 self.ann_widget.refresh_table(self._ann_models)
                 return
             row += len(model)
+
+    def _redraw_all_rois(self) -> None:
+        """Clear and redraw every annotation ROI with correct flat indices."""
+        import json
+        for wf in self._waterfalls():
+            wf.clear_annotation_rois()
+        flat = 0
+        for ann_type in (AnnType.BBOX, AnnType.OBB, AnnType.KP, AnnType.LINE):
+            model = self._ann_models[ann_type]
+            for i, ann in enumerate(model.annotations):
+                for wf in self._waterfalls():
+                    if ann_type == AnnType.BBOX:
+                        wf.add_annotation_roi(i, ann.t0, ann.t1, ann.d0, ann.d1,
+                                              label=ann.id, flat_idx=flat)
+                    elif ann_type == AnnType.OBB:
+                        wf.add_obb_roi(i, ann.cx_t, ann.cy_d, ann.w_t, ann.h_d,
+                                       ann.angle_deg, label=ann.id, flat_idx=flat)
+                    elif ann_type == AnnType.KP:
+                        pts_t = json.loads(ann.kp_t)
+                        pts_d = json.loads(ann.kp_d)
+                        wf.add_kp_roi(i, pts_t, pts_d, label=ann.id, flat_idx=flat)
+                    elif ann_type == AnnType.LINE:
+                        pts_t = json.loads(ann.pts_t) if hasattr(ann, 'pts_t') else json.loads(ann.kp_t)
+                        pts_d = json.loads(ann.pts_d) if hasattr(ann, 'pts_d') else json.loads(ann.kp_d)
+                        wf.add_line_roi(i, pts_t, pts_d, label=ann.id, flat_idx=flat)
+                flat += 1
 
     def _on_annotation_save(self) -> None:
         if not self._export_dir:
@@ -2177,7 +2200,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _all_waterfalls_add_roi(self, index, t0, t1, d0, d1, label=""):
         for wf in self._waterfalls():
-            wf.add_annotation_roi(index, t0, t1, d0, d1, label=label)
+            flat = self._flat_idx(AnnType.BBOX, index)
+            wf.add_annotation_roi(index, t0, t1, d0, d1, label=label, flat_idx=flat)
 
     def _all_waterfalls_remove_roi(self, index):
         for wf in self._waterfalls():
@@ -2534,7 +2558,8 @@ class MainWindow(QtWidgets.QMainWindow):
             for i, ann in enumerate(model):
                 for wf in self._waterfalls():
                     if ann_type == AnnType.BBOX:
-                        wf.add_annotation_roi(i, ann.t0, ann.t1, ann.d0, ann.d1, label=ann.id)
+                        fidx = self._flat_idx(ann_type, i)
+                        wf.add_annotation_roi(i, ann.t0, ann.t1, ann.d0, ann.d1, label=ann.id, flat_idx=fidx)
                     elif ann_type == AnnType.OBB:
                         fidx = self._flat_idx(ann_type, i)
                         wf.add_obb_roi(i, ann.cx_t, ann.cy_d, ann.w_t, ann.h_d,
