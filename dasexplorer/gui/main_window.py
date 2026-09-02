@@ -1692,13 +1692,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 # from the axis-aligned bounding box of the annotation
                 import json as _json
                 if ann_type == AnnType.OBB:
-                    # Use physical coordinates as source of truth — more robust
-                    # than bbox_ti_di() which uses local array indices that may
-                    # be out of range if stride or spatial crop changed.
-                    t0 = max(float(ds.time_s[0]),  float(ann.cx_t - ann.w_t))
-                    t1 = min(float(ds.time_s[-1]), float(ann.cx_t + ann.w_t))
-                    d0 = max(float(ds.dist_m[0]),  float(ann.cy_d - ann.h_d))
-                    d1 = min(float(ds.dist_m[-1]), float(ann.cy_d + ann.h_d))
+                    # Compute the axis-aligned bounding box (AABB) of the rotated
+                    # OBB from its 4 physical corners. This is the red rectangle
+                    # that contains the full OBBox regardless of rotation angle.
+                    import math as _math
+                    _a = _math.radians(ann.angle_deg)
+                    _cos, _sin = _math.cos(_a), _math.sin(_a)
+                    _hw, _hh = ann.w_t, ann.h_d
+                    _ct, _cd = [], []
+                    for _dt, _dd in [(_hw,_hh),(_hw,-_hh),(-_hw,-_hh),(-_hw,_hh)]:
+                        _ct.append(ann.cx_t + _cos * _dt - _sin * _dd)
+                        _cd.append(ann.cy_d + _sin * _dt + _cos * _dd)
+                    t0 = max(float(ds.time_s[0]),  min(_ct))
+                    t1 = min(float(ds.time_s[-1]), max(_ct))
+                    d0 = max(float(ds.dist_m[0]),  min(_cd))
+                    d1 = min(float(ds.dist_m[-1]), max(_cd))
                     ti0, ti1, di0, di1 = AnnotationModel.compute_indices(
                         t0, t1, d0, d1, ds.time_s, ds.dist_m
                     )
