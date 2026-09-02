@@ -17,7 +17,7 @@ from dasexplorer.core.annotations import (
 )
 from dasexplorer.core.config import get_interrogator_defaults, get_ui_defaults
 from dasexplorer.core.readers import (
-    INTERROGATOR_TYPES,  # kept for interrogator-type dispatch
+    READER_TYPES,  # kept for reader-type dispatch
     read_das_file, generate_synthetic_dataset,
 )
 from dasexplorer.gui.annotation_widget import AnnotationWidget
@@ -81,16 +81,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self._last_tab_index: int = 0
         self._build_ui()
 
-        # Apply default interrogator from config (after UI is built so
-        # combo_interrogator exists). Suppress the currentIndexChanged signal
+        # Apply default reader from config (after UI is built so
+        # combo_reader exists). Suppress the currentIndexChanged signal
         # to avoid triggering a file-list refresh before any file is loaded.
         from dasexplorer.core.config import get_default_profile_key, get_all_profiles as _gap
         _pkeys = list(_gap().keys())
         _def   = get_default_profile_key()
         if _def in _pkeys:
-            self.combo_interrogator.blockSignals(True)
-            self.combo_interrogator.setCurrentIndex(_pkeys.index(_def))
-            self.combo_interrogator.blockSignals(False)
+            self.combo_reader.blockSignals(True)
+            self.combo_reader.setCurrentIndex(_pkeys.index(_def))
+            self.combo_reader.blockSignals(False)
 
     # ------------------------------------------------------------------
     # UI construction
@@ -337,7 +337,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Show the full Time/Distance extent of the currently loaded dataset
         in all three views (Raw/F-K/RGB) — i.e. undo any zoom/crop without
         touching Color/Frequency/F-K/RGB parameters (unlike Refresh, which
-        resets everything to the interrogator defaults).
+        resets everything to the reader defaults).
         """
         if self.dataset is None:
             self._status_error("No data loaded.")
@@ -362,7 +362,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _on_menu_refresh(self) -> None:
         """
-        Reset all View-panel parameters to this interrogator's config.json
+        Reset all View-panel parameters to this reader's config.json
         defaults WITHOUT re-reading the file from disk, then re-render —
         equivalent to "as if you had just opened it", but much cheaper than
         an actual reload.
@@ -373,11 +373,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         from dasexplorer.core.config import get_all_profiles as _gap5, get_profile as _gp5
         _pkeys5  = list(_gap5().keys())
-        _pidx5   = self.combo_interrogator.currentIndex()
+        _pidx5   = self.combo_reader.currentIndex()
         _pkey5   = _pkeys5[_pidx5] if _pidx5 < len(_pkeys5) else _pkeys5[0]
         _pcfg5   = _gp5(_pkey5)
-        interrogator = _pcfg5.get("interrogator", INTERROGATOR_TYPES[0])
-        cfg = get_interrogator_defaults(interrogator)
+        reader = _pcfg5.get("reader", READER_TYPES[0])
+        cfg = get_interrogator_defaults(reader)
         self._apply_default_view_params(self.dataset, cfg)
         self._default_view = str(cfg.get("default_view", "raw")).lower()
 
@@ -407,7 +407,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.tab_widget.setCurrentIndex(0)
 
-        self._status_done("View refreshed to interrogator defaults.")
+        self._status_done("View refreshed to reader defaults.")
 
     def _get_export_arrays(self, export_selected_view: bool):
         """Return (tr, dist_m, time_s) for export: either the full dataset
@@ -476,7 +476,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fs_hz=np.float64(ds.fs_hz),
                 start_datetime_utc=start_iso,
                 filename=ds.filename or "",
-                interrogator=ds.interrogator or "",
+                reader=ds.reader or "",
                 downsample=np.int64(ds.downsample or 1),
                 units=ds.units or "",
                 metadata_json=__import__("json").dumps(ds.metadata or {}),
@@ -528,7 +528,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     "fs_hz": float(ds.fs_hz),
                     "start_datetime_utc": start_iso,
                     "filename": ds.filename or "",
-                    "interrogator": ds.interrogator or "",
+                    "reader": ds.reader or "",
                     "downsample": int(ds.downsample or 1),
                     "units": ds.units or "",
                     "metadata_json": __import__("json").dumps(ds.metadata or {}),
@@ -752,12 +752,12 @@ class MainWindow(QtWidgets.QMainWindow):
         ctrl_row.setSpacing(6)
 
         ctrl_row.addWidget(QtWidgets.QLabel("Profile:"))
-        self.combo_interrogator = QtWidgets.QComboBox()
+        self.combo_reader = QtWidgets.QComboBox()
         from dasexplorer.core.config import get_all_profiles as _gap_ui
         for _p in _gap_ui().values():
-            self.combo_interrogator.addItem(_p.get("label", "?"))
-        self.combo_interrogator.currentIndexChanged.connect(self._on_interrogator_changed)
-        ctrl_row.addWidget(self.combo_interrogator, 1)
+            self.combo_reader.addItem(_p.get("label", "?"))
+        self.combo_reader.currentIndexChanged.connect(self._on_reader_changed)
+        ctrl_row.addWidget(self.combo_reader, 1)
 
         ctrl_row.addWidget(QtWidgets.QLabel("Stride:"))
         self.combo_stride = QtWidgets.QComboBox()
@@ -1037,10 +1037,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         from dasexplorer.core.config import get_all_profiles as _gap4, get_profile as _gp
         _pkeys4      = list(_gap4().keys())
-        idx          = self.combo_interrogator.currentIndex()
+        idx          = self.combo_reader.currentIndex()
         _profile_key = _pkeys4[idx] if idx < len(_pkeys4) else _pkeys4[0]
         _profile_cfg = _gp(_profile_key)
-        interrogator = _profile_cfg.get("interrogator", INTERROGATOR_TYPES[0])
+        reader = _profile_cfg.get("reader", READER_TYPES[0])
         stride       = STRIDE_VALUES[self.combo_stride.currentIndex()]
 
         self.lbl_file.setText("Loading file…")
@@ -1050,7 +1050,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.processEvents()
 
         kwargs = {"stride": stride} if stride > 1 else {}
-        if interrogator == "hdas2.5":
+        if reader == "hdas2.5":
             kwargs["num_files"] = int(_profile_cfg.get("num_files", 1))
         # Spatial read limits — defined per-profile in config.json
         _rdmin = _profile_cfg.get("read_dmin_m")
@@ -1060,7 +1060,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if _rdmax is not None:
             kwargs["read_dmax_m"] = float(_rdmax)
         try:
-            dataset = read_das_file(path, interrogator, **kwargs)
+            dataset = read_das_file(path, reader, **kwargs)
         except NotImplementedError as exc:
             QtWidgets.QMessageBox.information(self, "Not implemented yet", str(exc))
             self.lbl_file.setText("<i>No file loaded</i>")
@@ -1116,19 +1116,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def _refresh_file_list(self, profile_key_or_interrogator: str) -> None:
         """Refresh the file list for the current directory.
 
-        Accepts either a profile key (new API) or a bare interrogator type
+        Accepts either a profile key (new API) or a bare reader type
         (legacy fallback). Extensions are resolved from the profile config.
         """
         from dasexplorer.core.config import get_all_profiles, get_profile as _gp_rf
         profiles = get_all_profiles()
         if profile_key_or_interrogator in profiles:
             pcfg = _gp_rf(profile_key_or_interrogator)
-            interrogator = pcfg.get("interrogator", "")
-            exts = pcfg.get("file_extensions") or _FALLBACK_EXTENSIONS.get(interrogator, [])
+            reader = pcfg.get("reader", "")
+            exts = pcfg.get("file_extensions") or _FALLBACK_EXTENSIONS.get(reader, [])
         else:
-            # Legacy: bare interrogator type passed
-            interrogator = profile_key_or_interrogator
-            exts = _FALLBACK_EXTENSIONS.get(interrogator, [])
+            # Legacy: bare reader type passed
+            reader = profile_key_or_interrogator
+            exts = _FALLBACK_EXTENSIONS.get(reader, [])
         if self._current_dir and os.path.isdir(self._current_dir):
             self._file_list = sorted([
                 f for f in os.listdir(self._current_dir)
@@ -1153,7 +1153,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _apply_default_view_params(self, dataset, cfg: dict) -> None:
         """
-        Reset all View-panel spinboxes/checkboxes to the interrogator's
+        Reset all View-panel spinboxes/checkboxes to the reader's
         config.json defaults. Shared by _set_dataset (first load) and
         File > Refresh. Every field visible in the View panel can be
         configured via config.json — see the file itself for documentation.
@@ -1278,13 +1278,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lbl_file.setText(label)
         self.lbl_file.setStyleSheet("color: #4a9eff;")
 
-        # Per-profile defaults from config — use active profile key, not just interrogator type
+        # Per-profile defaults from config — use active profile key, not just reader type
         from dasexplorer.core.config import get_all_profiles, get_profile
         _profile_keys = list(get_all_profiles().keys())
-        _profile_idx  = self.combo_interrogator.currentIndex()
+        _profile_idx  = self.combo_reader.currentIndex()
         _profile_key  = _profile_keys[_profile_idx] if _profile_idx < len(_profile_keys) else _profile_keys[0]
         cfg           = get_profile(_profile_key)
-        interrogator  = cfg.get("interrogator", INTERROGATOR_TYPES[0])
+        reader  = cfg.get("reader", READER_TYPES[0])
         vmin_cfg = float(cfg.get("vmin", 0))
         vmax_cfg = float(cfg.get("vmax", 12))
         fmin_cfg = float(cfg.get("fmin_hz", 1.0))
@@ -1530,7 +1530,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spin_vmin.blockSignals(False)
         self.spin_vmax.blockSignals(False)
 
-    def _on_interrogator_changed(self, index: int) -> None:
+    def _on_reader_changed(self, index: int) -> None:
         if self._current_dir:
             from dasexplorer.core.config import get_all_profiles as _gap2
             _pk2 = list(_gap2().keys())
@@ -1692,11 +1692,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 # from the axis-aligned bounding box of the annotation
                 import json as _json
                 if ann_type == AnnType.OBB:
-                    ti0, ti1, di0, di1 = ann.bbox_ti_di()
-                    t0 = float(ds.time_s[max(0, ti0)])
-                    t1 = float(ds.time_s[min(len(ds.time_s)-1, ti1)])
-                    d0 = float(ds.dist_m[max(0, di0)])
-                    d1 = float(ds.dist_m[min(len(ds.dist_m)-1, di1)])
+                    # Use physical coordinates as source of truth — more robust
+                    # than bbox_ti_di() which uses local array indices that may
+                    # be out of range if stride or spatial crop changed.
+                    t0 = max(float(ds.time_s[0]),  float(ann.cx_t - ann.w_t))
+                    t1 = min(float(ds.time_s[-1]), float(ann.cx_t + ann.w_t))
+                    d0 = max(float(ds.dist_m[0]),  float(ann.cy_d - ann.h_d))
+                    d1 = min(float(ds.dist_m[-1]), float(ann.cy_d + ann.h_d))
+                    ti0, ti1, di0, di1 = AnnotationModel.compute_indices(
+                        t0, t1, d0, d1, ds.time_s, ds.dist_m
+                    )
                 elif ann_type == AnnType.KP:
                     tis = _json.loads(ann.kp_ti)
                     dis = _json.loads(ann.kp_di)
@@ -1767,8 +1772,11 @@ class MainWindow(QtWidgets.QMainWindow):
         ann = self._get_analysis_ann(index)
         if ann is None:
             return
-        dlg = SpectralDialog(ann, self._analysis_dataset(), parent=self)
-        dlg.show()
+        try:
+            dlg = SpectralDialog(ann, self._analysis_dataset(), parent=self)
+            dlg.show()
+        except Exception as exc:
+            self._status_error(f"Spectral Analysis error: {exc}")
 
     def _on_show_signal(self, index: int) -> None:
         ann = self._get_analysis_ann(index)
@@ -2245,7 +2253,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fk_params, display_filter=False,
             )
             tr_fk_base = dsp.fk_filter_sparsefilt(
-                tr_src, fk_filter, tapering=True
+                tr_src, fk_filter, tapering=False # True
             ).astype(np.float32)
 
             # Cache the raw FK array (before envelope) for fast re-render on toggle
@@ -2299,6 +2307,17 @@ class MainWindow(QtWidgets.QMainWindow):
         spectral content, since every band IS a different filtered version
         of the same raw signal.
         """
+        # Debug log — remove after diagnosis
+        try:
+            with open("C:/Lab/projects/DASexplorer/rgb_debug.txt", "a") as _dbg:
+                _dbg.write("_apply_rgb called\n")
+                if self.dataset is not None:
+                    _dbg.write(f"  tr.shape={self.dataset.tr.shape} fs={self.dataset.fs_hz}\n")
+                    _dbg.write(f"  tr range=[{self.dataset.tr.min():.4e}, {self.dataset.tr.max():.4e}]\n")
+                else:
+                    _dbg.write("  dataset is None\n")
+        except Exception as _e:
+            pass
 
         if self.dataset is None:
             self._status_error("No data loaded.")
@@ -2341,7 +2360,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 r_band=(r_min, r_max), g_band=(g_min, g_max), b_band=(b_min, b_max),
                 percentile=percentile,
             )
-
+            with open("C:/Lab/projects/DASexplorer/rgb_debug.txt", "a") as _dbg:
+                _dbg.write(f"  rgb.shape={rgb.shape} max={rgb.max()} mean={rgb.mean():.2f}\n")
         except Exception as exc:
             self._status_error(f"RGB composite error: {exc}")
             self.waterfall_rgb.set_rois_visible(True)

@@ -52,7 +52,7 @@
             "vmax": 0.4,
             "colormap": "Rainbow",
             "fmin_hz": 10.0,
-            "fmax_hz": null,
+            "fmax_hz": 30.0,
             "fmax_offset_hz": 0.01,
             "stride": 1,
             "envelope": true,
@@ -71,8 +71,8 @@
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0,
             "num_files": 1,
-            "read_dmin_m": 20000,
-            "read_dmax_m": 65000,
+            "read_dmin_m": 20000.0,
+            "read_dmax_m": 65000.0,
             "reader": "optasense_v1"
         },
         "silixa_v1": {
@@ -84,8 +84,8 @@
             "tmax_s": null,
             "dmin_m": null,
             "dmax_m": null,
-            "vmin": -5,
-            "vmax": 5,
+            "vmin": -5.0,
+            "vmax": 5.0,
             "colormap": "Rainbow",
             "fmin_hz": 1.0,
             "fmax_hz": null,
@@ -108,7 +108,8 @@
             "rgb_percentile": 90.0,
             "read_dmin_m": null,
             "read_dmax_m": null,
-            "reader": "silixa_v1"
+            "reader": "silixa_v1",
+            "num_files": 1
         },
         "optodas_v1": {
             "label": "ASN OptoDAS (.hdf5) OOI-RCA 2024",
@@ -119,8 +120,8 @@
             "tmax_s": null,
             "dmin_m": null,
             "dmax_m": null,
-            "vmin": -20,
-            "vmax": 20,
+            "vmin": -20.0,
+            "vmax": 20.0,
             "colormap": "Rainbow",
             "fmin_hz": 1.0,
             "fmax_hz": null,
@@ -143,7 +144,8 @@
             "rgb_percentile": 90.0,
             "read_dmin_m": null,
             "read_dmax_m": null,
-            "reader": "optodas_v1"
+            "reader": "optodas_v1",
+            "num_files": 1
         },
         "svalbard_v1": {
             "label": "ASN OptoDAS (.mat) Svalbard-2020",
@@ -178,7 +180,8 @@
             "rgb_percentile": 90.0,
             "read_dmin_m": null,
             "read_dmax_m": null,
-            "reader": "svalbard_v1"
+            "reader": "svalbard_v1",
+            "num_files": 1
         }
     },
     "ui": {

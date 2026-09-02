@@ -102,8 +102,12 @@ class SpectrogramDialog(QtWidgets.QDialog):
         dist_local = dataset.dist_m[:n_tr]
         di0 = int(np.clip(np.searchsorted(dist_local, ann.d0), 0, n_tr - 1))
         di1 = int(np.clip(np.searchsorted(dist_local, ann.d1), 0, n_tr - 1))
-        if di1 <= di0:
-            di1 = min(di0 + 1, n_tr - 1)
+        # Guarantee at least MIN_CHANNELS so scrollbar and average are meaningful
+        MIN_CHANNELS = 5
+        if di1 - di0 < MIN_CHANNELS:
+            mid = (di0 + di1) // 2
+            di0 = max(0, mid - MIN_CHANNELS // 2)
+            di1 = min(n_tr - 1, di0 + MIN_CHANNELS)
         self._di0 = di0
         self._di1 = di1
         self._cur_ch = (di0 + di1) // 2
@@ -370,12 +374,30 @@ class SpectralDialog(QtWidgets.QDialog):
         self.ann = ann
         self.dataset = dataset
 
-        di0, di1 = ann.di0, ann.di1
-        if di1 <= di0:
-            di1 = di0 + 1
+        # Use physical coordinates to find local array indices.
+        # ann.di0/di1 are absolute cable indices (include channel_offset)
+        # and must not be used directly as tr row indices.
+        dist_local = dataset.dist_m
+        n_tr = len(dist_local)
+        di0 = int(np.clip(np.searchsorted(dist_local, ann.d0), 0, n_tr - 1))
+        di1 = int(np.clip(np.searchsorted(dist_local, ann.d1), 0, n_tr - 1))
+        # Guarantee at least MIN_CHANNELS for a meaningful average spectrum
+        MIN_CHANNELS = 5
+        if di1 - di0 < MIN_CHANNELS:
+            mid = (di0 + di1) // 2
+            di0 = max(0, mid - MIN_CHANNELS // 2)
+            di1 = min(n_tr - 1, di0 + MIN_CHANNELS)
+
+        time_local = dataset.time_s
+        n_t = len(time_local)
+        ti0 = int(np.clip(np.searchsorted(time_local, ann.t0), 0, n_t - 1))
+        ti1 = int(np.clip(np.searchsorted(time_local, ann.t1), 0, n_t - 1))
+        if ti1 <= ti0:
+            ti1 = min(ti0 + 1, n_t - 1)
+
         self._channels = select_channels_for_spectral(di0, di1, self.MAX_SPECTRUMS)
-        self._ti0 = ann.ti0
-        self._ti1 = ann.ti1 if ann.ti1 > ann.ti0 else ann.ti0 + 1
+        self._ti0 = ti0
+        self._ti1 = ti1
 
         n_shown = len(select_channels_for_spectral(di0, di1, self.MAX_SPECTRUMS))
         n_total = di1 - di0

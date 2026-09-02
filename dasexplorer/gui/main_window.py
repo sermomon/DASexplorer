@@ -1692,11 +1692,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 # from the axis-aligned bounding box of the annotation
                 import json as _json
                 if ann_type == AnnType.OBB:
-                    ti0, ti1, di0, di1 = ann.bbox_ti_di()
-                    t0 = float(ds.time_s[max(0, ti0)])
-                    t1 = float(ds.time_s[min(len(ds.time_s)-1, ti1)])
-                    d0 = float(ds.dist_m[max(0, di0)])
-                    d1 = float(ds.dist_m[min(len(ds.dist_m)-1, di1)])
+                    # Use physical coordinates as source of truth — more robust
+                    # than bbox_ti_di() which uses local array indices that may
+                    # be out of range if stride or spatial crop changed.
+                    t0 = max(float(ds.time_s[0]),  float(ann.cx_t - ann.w_t))
+                    t1 = min(float(ds.time_s[-1]), float(ann.cx_t + ann.w_t))
+                    d0 = max(float(ds.dist_m[0]),  float(ann.cy_d - ann.h_d))
+                    d1 = min(float(ds.dist_m[-1]), float(ann.cy_d + ann.h_d))
+                    ti0, ti1, di0, di1 = AnnotationModel.compute_indices(
+                        t0, t1, d0, d1, ds.time_s, ds.dist_m
+                    )
                 elif ann_type == AnnType.KP:
                     tis = _json.loads(ann.kp_ti)
                     dis = _json.loads(ann.kp_di)
@@ -1767,8 +1772,11 @@ class MainWindow(QtWidgets.QMainWindow):
         ann = self._get_analysis_ann(index)
         if ann is None:
             return
-        dlg = SpectralDialog(ann, self._analysis_dataset(), parent=self)
-        dlg.show()
+        try:
+            dlg = SpectralDialog(ann, self._analysis_dataset(), parent=self)
+            dlg.show()
+        except Exception as exc:
+            self._status_error(f"Spectral Analysis error: {exc}")
 
     def _on_show_signal(self, index: int) -> None:
         ann = self._get_analysis_ann(index)
@@ -2197,7 +2205,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self._status_error("No data loaded.")
             return
 
-        tr_src = self.waterfall.get_displayed_array()
+        # Always apply FK on the bandpass-filtered signal, never on the
+        # Hilbert envelope — FK filtering requires the original signed signal.
+        tr_src = self.waterfall.get_bandpass_array()
         if tr_src is None:
             self._status_error("Apply bandpass filter first (Raw tab).")
             return

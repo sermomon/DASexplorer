@@ -233,7 +233,6 @@ class WaterfallWidget(QtWidgets.QWidget):
         self._edit_key_filter  = None
 
         self._tr_display       = None
-        self._tr_bandpass      = None  # bandpass-filtered signal (no envelope)
         self._tr_envelope      = None
         self._tr_envelope_src  = None
         self._rgb_signal_disconnected = False
@@ -1629,9 +1628,6 @@ class WaterfallWidget(QtWidgets.QWidget):
         else:
             tr = dataset.tr
 
-        # Always store the pre-envelope array for FK filtering and analysis
-        self._tr_bandpass = tr
-
         if envelope:
             tr = self.compute_envelope(tr)
 
@@ -1766,12 +1762,6 @@ class WaterfallWidget(QtWidgets.QWidget):
     def get_displayed_array(self) -> np.ndarray:
         """Return the array currently shown (filtered or raw). May be None."""
         return self._tr_display
-
-    def get_bandpass_array(self) -> np.ndarray:
-        """Return the bandpass-filtered array without Hilbert envelope.
-        Use this for FK filtering and any analysis that requires the signed signal.
-        """
-        return self._tr_bandpass
 
     def compute_bandpass(self, fmin: float, fmax: float) -> np.ndarray:
         import scipy.signal as sp
