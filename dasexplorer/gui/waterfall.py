@@ -21,33 +21,36 @@ COLORMAPS = [
 ]
 
 
+def _ann_color(key: str) -> tuple:
+    """Return the (R, G, B) colour for an annotation type from config."""
+    from dasexplorer.core.config import get_annotation_colors
+    return get_annotation_colors().get(key, (255, 220, 0))
+
 def _bbox_pen():
-    return pg.mkPen(color=theme.current()["pg_bbox"], width=2)
+    return pg.mkPen(color=_ann_color('bbox'), width=2)
 
 def _bbox_pen_sel():
     return pg.mkPen(color=theme.current()["pg_bbox_sel"], width=2, style=QtCore.Qt.DashLine)
 
 def _bbox_brush():
-    c = theme.current()["pg_bbox"]
+    c = _ann_color('bbox')
     return pg.mkBrush(color=(*c, 30))
 
-# Single colour for all annotation types — same yellow as BBox for consistency
 def _ann_pen():
-    return pg.mkPen(color=theme.current()["pg_bbox"], width=2)
+    return pg.mkPen(color=_ann_color('bbox'), width=2)
 
 def _ann_pen_sel():
     return pg.mkPen(color=theme.current()["pg_bbox_sel"], width=2, style=QtCore.Qt.DashLine)
 
-# Keep individual aliases for backwards compat
-def _obb_pen():   return _ann_pen()
-def _kp_pen():    return _ann_pen()
-def _line_pen():  return _ann_pen()
+def _obb_pen():   return pg.mkPen(color=_ann_color('obb'),  width=2)
+def _kp_pen():    return pg.mkPen(color=_ann_color('kp'),   width=2)
+def _line_pen():  return pg.mkPen(color=_ann_color('line'), width=2)
 
 _ANN_TYPE_PENS = {
-    AnnType.BBOX: _ann_pen,
-    AnnType.OBB:  _ann_pen,
-    AnnType.KP:   _ann_pen,
-    AnnType.LINE: _ann_pen,
+    AnnType.BBOX: _bbox_pen,
+    AnnType.OBB:  _obb_pen,
+    AnnType.KP:   _kp_pen,
+    AnnType.LINE: _line_pen,
 }
 
 class AnnotationROI(pg.ROI):
@@ -668,7 +671,7 @@ class WaterfallWidget(QtWidgets.QWidget):
         self.plot_widget.addItem(roi)
 
         # Label at top-left corner of the box
-        text = pg.TextItem(label, color=(255, 220, 0), anchor=(0, 1))
+        text = pg.TextItem(label, color=_ann_color('bbox'), anchor=(0, 1))
         from PyQt5.QtGui import QFont
         f = QFont()
         f.setPointSize(8)

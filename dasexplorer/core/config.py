@@ -158,6 +158,26 @@ def get_interrogator_defaults(interrogator: str) -> dict:
     return get_reader_defaults(interrogator)
 
 
+def get_annotation_colors() -> dict:
+    """Return per-type annotation colours from the ui.annotation_colors config key.
+
+    Returns a dict with keys 'bbox', 'obb', 'kp', 'line', each a tuple (R, G, B).
+    Falls back to built-in defaults if the key is absent.
+    """
+    defaults = {
+        'bbox': (255, 220, 0),
+        'obb':  (0,   200, 255),
+        'kp':   (0,   255, 100),
+        'line': (255, 100, 0),
+    }
+    raw = _cfg.get('ui', {}).get('annotation_colors', {})
+    result = {}
+    for key, default in defaults.items():
+        val = raw.get(key, default)
+        result[key] = tuple(int(v) for v in val)
+    return result
+
+
 def set_ui_theme(theme_name: str) -> None:
     """Persist the chosen UI theme to config.json."""
     global _cfg
