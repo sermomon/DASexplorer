@@ -32,7 +32,6 @@ dependencies = [
     "scipy>=1.9",
     "matplotlib>=3.5",
     "h5py>=3.7",
-    "das4whales>=0.1",
     "Pillow>=9.0",
     "pyyaml>=6.0",
 ]

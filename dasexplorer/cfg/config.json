@@ -59,7 +59,7 @@
             "fk_cmin_ms": 1400.0,
             "fk_cmax_ms": 3500.0,
             "fk_fmin_hz": 10.0,
-            "fk_fmax_hz": null,
+            "fk_fmax_hz": 30.0,
             "fk_fmax_offset_hz": 0.01,
             "fk_envelope": true,
             "default_view": "raw",

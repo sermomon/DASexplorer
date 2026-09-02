@@ -1,16 +1,21 @@
 """
 OptaSense reader — Luna Innovations.
 
-Reads HDF5 .h5 files from the OptaSense interrogator via the das4whales library.
+Reads HDF5 .h5 files from the OptaSense interrogator.
+Reimplemented directly with h5py, replicating the das4whales
+data_handle.get_metadata_optasense / load_das_data logic exactly.
+
 Dataset: OOI RCA 2021 (https://doi.org/10.58046/5J60-FJ89)
 """
+
 import os
-import re
-import datetime
+from datetime import datetime
 from typing import Optional
+
+import h5py
 import numpy as np
+
 from dasexplorer.core.data_model import DASDataset
-from dasexplorer.core.readers_lib import _ensure_tools_importable
 
 
 def read_optasense_v1(
@@ -20,79 +25,102 @@ def read_optasense_v1(
     read_dmax_m: Optional[float] = None,
     **kwargs,
 ) -> DASDataset:
-    
-    ######################################################################
-    ### OPTASENCE / QUINETIQ, LUNA INNOVATIONS (.h5) OOI-RCA 2021
-    # https://doi.org/10.58046/5J60-FJ89
-    ######################################################################
+    """Read a DAS acquisition from a Luna Innovations OptaSense interrogator (.h5).
 
-    """
-    Read a DAS acquisition from an OptaSense interrogator (HDF5).
+    Replicates the das4whales data_handle.get_metadata_optasense and
+    load_das_data(interrogator="optasense") pipeline using h5py directly,
+    without requiring das4whales as a dependency.
 
-    Units
-    -----
-    The returned tr array is in nanostrain (strain x 1e9). das4whales'
-    raw2strain() converts the raw optical phase to absolute strain
-    (~1e-9 to 1e-10 range), and we additionally multiply by 1e9 here to
-    match the convention used by das4whales' own plot functions
-    (plot_tx, plot_tx_env, plot_tx_lined all do `abs(trace) * 1e9` before
-    display). This keeps config.json vmin/vmax (e.g. 0-0.4) consistent
-    with the das4whales tutorial.
+    The returned tr array is in nanostrain (strain x 1e9), consistent with
+    the das4whales tutorial convention (vmin=0, vmax=0.4 nanostrain).
 
     Parameters
     ----------
     path : str
-        Path to the OptaSense HDF5 file.
-    selected_channels_m : [start_m, stop_m, step_m], optional
-        Channel range in metres. If None, all channels are loaded.
+        Full path to the .h5 file.
     stride : int, optional
-        Channel subsampling factor applied after loading.
+        Spatial decimation factor. If > 1, every stride-th channel is loaded.
+        Applied directly at read time via HDF5 slicing (no full array loaded).
+    read_dmin_m : float, optional
+        Start of the spatial range to load [m]. None = start of cable.
+    read_dmax_m : float, optional
+        End of the spatial range to load [m]. None = end of cable.
+    **kwargs
+        Additional keyword arguments (ignored).
 
     Returns
     -------
     DASDataset
     """
-    _ensure_tools_importable()
-    selected_channels_m = kwargs.get("selected_channels_m", None)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"File not found: {path}")
 
-    import das4whales as dw
+    with h5py.File(path, "r") as fp:
+        acq   = fp["Acquisition"]
+        raw0  = acq["Raw[0]"]
 
-    metadata = dw.data_handle.get_acquisition_parameters(path, interrogator="optasense")
+        # ── Metadata ─────────────────────────────────────────────────────
+        fs_hz = float(raw0.attrs["OutputDataRate"])
+        dx_m  = float(acq.attrs["SpatialSamplingInterval"])
+        nx    = int(raw0.attrs["NumberOfLoci"])
+        n_ri  = float(acq["Custom"].attrs["Fibre Refractive Index"])
+        GL    = float(acq.attrs["GaugeLength"])
 
-    fs_hz = metadata["fs"]
-    dx_m  = metadata["dx"]
-    nx    = metadata["nx"]
+        # Scale factor: converts raw int16 counts → strain (dimensionless)
+        # Same formula as das4whales data_handle.get_metadata_optasense
+        scale_factor = (
+            (2 * np.pi) / 2**16
+            * (1550.12e-9)
+            / (0.78 * 4 * np.pi * n_ri * GL)
+        )
 
-    if selected_channels_m is None:
-        start_m = read_dmin_m if read_dmin_m is not None else 0.0
-        stop_m  = read_dmax_m if read_dmax_m is not None else nx * dx_m
-        selected_channels_m = [start_m, stop_m, dx_m]
+        start_dist_m = float(
+            acq["Custom"].attrs["Output Channel Start (CSU)"]
+        ) * dx_m
 
-    selected_channels = [int(c // dx_m) for c in selected_channels_m]
+        # ── Timestamp ─────────────────────────────────────────────────────
+        raw_time = raw0["RawDataTime"]
+        file_start_datetime = datetime.utcfromtimestamp(float(raw_time[0]) * 1e-6)
 
-    tr, _time, _dist, file_start_datetime = dw.data_handle.load_das_data(
-        path, selected_channels, metadata
+        # ── Channel selection (stride + spatial crop) ─────────────────────
+        effective_stride = int(stride) if (stride is not None and stride > 1) else 1
+
+        # Convert spatial crop from metres to channel indices
+        ch_start = 0
+        ch_stop  = nx
+        if read_dmin_m is not None:
+            ch_start = max(0, int((read_dmin_m - start_dist_m) / dx_m))
+        if read_dmax_m is not None:
+            ch_stop  = min(nx, int((read_dmax_m - start_dist_m) / dx_m) + 1)
+
+        # ── Load data with HDF5 slicing (no full array in memory) ─────────
+        raw_data = raw0["RawData"]
+
+        # Handle orientation: some files are (nx, ns), some (ns, nx)
+        if raw_data.shape[0] == nx:
+            tr = raw_data[ch_start:ch_stop:effective_stride, :].astype(np.float64)
+        else:
+            tr = raw_data[:, ch_start:ch_stop:effective_stride].T.astype(np.float64)
+
+    # ── raw2strain: remove per-channel mean, apply scale factor ──────────
+    # Multiply by 1e9 to express in nanostrain (das4whales convention)
+    tr -= np.mean(tr, axis=1, keepdims=True)
+    tr *= scale_factor * 1e9
+    tr = tr.astype(np.float32)
+
+    # ── Build axes ────────────────────────────────────────────────────────
+    n_ch, n_t = tr.shape
+    fs_hz = float(fs_hz)
+    time_s = np.arange(n_t) / fs_hz
+    dist_m = (
+        start_dist_m
+        + np.arange(n_ch) * dx_m * effective_stride
+        + ch_start * dx_m
     )
-    tr = tr.copy()
 
-    # das4whales stores raw strain (~1e-9 to 1e-10 range). All das4whales plot
-    # functions (plot_tx, plot_tx_env, plot_tx_lined) multiply by 1e9 to display
-    # in nanostrain with vmin/vmax around 0-0.4. We replicate that convention
-    # here so our config.json vmin/vmax (also in nanostrain) match the data.
-    tr = (tr * 1e9).astype(np.float32)
-
-    # dist_m should reflect the real offset of the selected channel range
-    # (e.g. 20000-65000 m), not start at 0.
-    start_dist_m = selected_channels[0] * dx_m
-    dist_m = start_dist_m + np.arange(tr.shape[0]) * dx_m
-    time_s = np.arange(tr.shape[1]) / fs_hz
-
-    downsample = None
-    channel_offset = int(round(start_dist_m / dx_m))
-    if stride is not None and stride > 1:
-        tr     = tr[::stride, :]
-        dist_m = dist_m[::stride]
-        downsample = stride
+    downsample    = effective_stride if effective_stride > 1 else None
+    # channel_offset: index of the first loaded channel in the full cable (stride=1)
+    channel_offset = ch_start
 
     return DASDataset(
         tr=tr,
@@ -101,13 +129,15 @@ def read_optasense_v1(
         fs_hz=fs_hz,
         start_datetime_utc=file_start_datetime,
         filename=os.path.basename(path),
-        reader="optasense",
+        reader="optasense_v1",
         downsample=downsample,
         channel_offset=channel_offset,
         metadata={
-            "gauge_length_m":      metadata.get("GL"),
-            "scale_factor":        metadata.get("scale_factor"),
-            "selected_channels_m": selected_channels_m,
+            "dx_m": dx_m,
+            "GL": GL,
+            "n": n_ri,
+            "scale_factor": scale_factor,
+            "start_dist_m": start_dist_m,
         },
         units="nanostrain",
     )

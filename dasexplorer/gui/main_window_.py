@@ -2205,7 +2205,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self._status_error("No data loaded.")
             return
 
-        tr_src = self.waterfall.get_displayed_array()
+        # Always apply FK on the bandpass-filtered signal, never on the
+        # Hilbert envelope — FK filtering requires the original signed signal.
+        tr_src = self.waterfall.get_bandpass_array()
         if tr_src is None:
             self._status_error("Apply bandpass filter first (Raw tab).")
             return
@@ -2253,7 +2255,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fk_params, display_filter=False,
             )
             tr_fk_base = dsp.fk_filter_sparsefilt(
-                tr_src, fk_filter, tapering=False # True
+                tr_src, fk_filter, tapering=True
             ).astype(np.float32)
 
             # Cache the raw FK array (before envelope) for fast re-render on toggle

@@ -2236,27 +2236,23 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.processEvents()
 
         try:
-            import das4whales.dsp as dsp
+            from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
 
-            ds = self.dataset
-            dx = float(ds.dist_m[1] - ds.dist_m[0]) if ds.n_dist > 1 else 1.0
-            n_dist, n_time = tr_src.shape
-            selected_channels = [0, n_dist, 1]
+            ds     = self.dataset
+            dx     = float(ds.dist_m[1] - ds.dist_m[0]) if ds.n_dist > 1 else 1.0
+            stride = int(ds.downsample or 1)
 
-            fk_params = {
-                'c_min': c_min,
-                'c_max': c_max,
-                'fmin':  fk_fmin,
-                'fmax':  fk_fmax,
-            }
-
-            fk_filter = dsp.hybrid_ninf_gs_filter_design(
-                (n_dist, n_time), selected_channels, dx, ds.fs_hz,
-                fk_params, display_filter=False,
+            fk_filt = fk_filter_design(
+                trace_shape=tr_src.shape,
+                dx=dx / stride,
+                fs=ds.fs_hz,
+                c_min=c_min,
+                c_max=c_max,
+                fmin=fk_fmin,
+                fmax=fk_fmax,
+                stride=stride,
             )
-            tr_fk_base = dsp.fk_filter_sparsefilt(
-                tr_src, fk_filter, tapering=True
-            ).astype(np.float32)
+            tr_fk_base = fk_filter_apply(tr_src, fk_filt, tapering=False)
 
             # Cache the raw FK array (before envelope) for fast re-render on toggle
             self._tr_fk_base = tr_fk_base
