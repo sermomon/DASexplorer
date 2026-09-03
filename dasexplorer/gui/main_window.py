@@ -23,7 +23,7 @@ from dasexplorer.core.readers import (
 from dasexplorer.gui.annotation_widget import AnnotationWidget
 from dasexplorer.gui.analysis_dialogs import (
     SpectrogramDialog, SpectralDialog, SignalDialog,
-    FKViewDialog, RGBViewDialog,
+    FKViewDialog, RGBViewDialog, MeasureDialog,
     SignalFreqDialog, SignalEnvelopeDialog, SignalPhaseDialog,
     VelocityDialog,
 )
@@ -649,6 +649,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall.roi_velocity_requested.connect(self._on_show_velocity)
         self.waterfall.roi_fk_view_requested.connect(self._on_show_fk_view)
         self.waterfall.roi_rgb_view_requested.connect(self._on_show_rgb_view)
+        self.waterfall.roi_measure_requested.connect(self._on_show_measure)
         self.waterfall.levels_changed.connect(self._on_histogram_levels_changed)
         self.tab_widget.addTab(self.waterfall, "Raw")
 
@@ -667,6 +668,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall_fk.roi_velocity_requested.connect(self._on_show_velocity)
         self.waterfall_fk.roi_fk_view_requested.connect(self._on_show_fk_view)
         self.waterfall_fk.roi_rgb_view_requested.connect(self._on_show_rgb_view)
+        self.waterfall_fk.roi_measure_requested.connect(self._on_show_measure)
         self.waterfall_fk.annotation_mode_changed_fk = False
         self.tab_widget.addTab(self.waterfall_fk, "F-K")
 
@@ -685,6 +687,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall_rgb.roi_velocity_requested.connect(self._on_show_velocity)
         self.waterfall_rgb.roi_fk_view_requested.connect(self._on_show_fk_view)
         self.waterfall_rgb.roi_rgb_view_requested.connect(self._on_show_rgb_view)
+        self.waterfall_rgb.roi_measure_requested.connect(self._on_show_measure)
         self.tab_widget.addTab(self.waterfall_rgb, "   ")
 
         # Live tab (placeholder)
@@ -1899,6 +1902,50 @@ class MainWindow(QtWidgets.QMainWindow):
             dlg.show()
         except Exception as exc:
             self._status_error(f"RGB View error: {exc}")
+
+    def _on_show_measure(self, index: int) -> None:
+        from dasexplorer.gui.waterfall import COLORMAPS
+        ann = self._get_analysis_ann(index)
+        if ann is None:
+            return
+        ds = self._analysis_dataset()
+        if ds is None:
+            return
+        # Use the active tab's display array
+        active = self.tab_widget.currentIndex()
+        if active == 0:
+            tr = self.waterfall.get_displayed_array()
+        elif active == 1:
+            tr = self.waterfall_fk.get_displayed_array()
+        else:
+            tr = self.waterfall.get_displayed_array()
+        cmap_idx = self.waterfall.combo_cmap.currentIndex()
+        try:
+            cmap = pg.colormap.get(COLORMAPS[cmap_idx][1], source="matplotlib")
+        except Exception:
+            cmap = pg.colormap.get(COLORMAPS[cmap_idx][1])
+        dlg = MeasureDialog(
+            ann=ann, dataset=ds, colormap=cmap,
+            vmin=self.spin_vmin.value(),
+            vmax=self.spin_vmax.value(),
+            tr_display=tr,
+            parent=self,
+        )
+        dlg.measure_saved.connect(
+            lambda dt, dd, v: self._on_measure_saved(index, dt, dd, v)
+        )
+        dlg.show()
+
+    def _on_measure_saved(self, index: int, dt: float, dd: float, v: float) -> None:
+        ann = self._get_analysis_ann(index)
+        if ann is None:
+            return
+        ann.comment = (
+            f"{ann.comment + ' | ' if ann.comment else ''}"
+            f"dt={dt:.4f}s dd={dd:.1f}m v={v:.1f}m/s"
+        )
+        self.ann_widget.refresh_table(self._ann_models)
+        self._status_done(f"Measure saved: Δt={dt:.4f}s  Δd={dd:.1f}m  v={v:.1f}m/s")
 
     # ------------------------------------------------------------------
 

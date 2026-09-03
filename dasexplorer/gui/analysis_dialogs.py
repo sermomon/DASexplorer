@@ -276,7 +276,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
           xRange=(t0_s, t1_s + dt_r), yRange=(y0, y1 + df_r), padding=0)
 
         self.setWindowTitle(
-            f"Spectrogram — Event [{self.ann.id}]  "
+            f"Spectrogram - Event [{self.ann.id}]  "
             f"Channel {ch} ({dist:.0f} m)  "
             f"t={self.ann.t0:.2f}–{self.ann.t1:.2f} s"
         )
@@ -355,7 +355,7 @@ class SpectralDialog(QtWidgets.QDialog):
     def __init__(self, ann, dataset, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Spectral Analysis  —  Event: [{ann.id}]  "
+            f"Spectral Analysis - Event: [{ann.id}]  "
             f"t={ann.t0:.2f}–{ann.t1:.2f}s"
         )
         # ~50% of screen, with native minimize/maximize buttons
@@ -394,7 +394,7 @@ class SpectralDialog(QtWidgets.QDialog):
         n_shown = len(select_channels_for_spectral(di0, di1, self.MAX_SPECTRUMS))
         n_total = di1 - di0
         self.setWindowTitle(
-            f"Spectral Analysis — Event [{ann.id}]  "
+            f"Spectral Analysis - Event [{ann.id}]  "
             f"Channels {di0}–{di1}  ({n_shown}/{n_total})  "
             f"Time {ann.t0:.2f}–{ann.t1:.2f} s"
         )
@@ -539,7 +539,7 @@ class SignalDialog(QtWidgets.QDialog):
     def __init__(self, ann, dataset, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Signal (time domain) — Event [{ann.id}]  "
+            f"Signal (time domain) - Event [{ann.id}]  "
             f"d={ann.d0:.0f}–{ann.d1:.0f} m  "
             f"t={ann.t0:.2f}–{ann.t1:.2f} s"
         )
@@ -712,7 +712,7 @@ class SignalDialog(QtWidgets.QDialog):
         )
         self.lbl_info.setText(f"Channel: {ch}  ({dist:.0f} m){fixed_info}")
         self.setWindowTitle(
-            f"Signal (time domain) — Event [{self.ann.id}]  "
+            f"Signal (time domain) - Event [{self.ann.id}]  "
             f"Channel {ch}  ({dist:.0f} m)"
         )
 
@@ -1566,7 +1566,7 @@ class VelocityDialog(QtWidgets.QDialog):
                  tr_display: np.ndarray = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Estimate Velocity — Event [{ann.id}]  "
+            f"Estimate Velocity - Event [{ann.id}]  "
             f"t={ann.t0:.2f}–{ann.t1:.2f} s  "
             f"d={ann.d0:.0f}–{ann.d1:.0f} m"
         )
@@ -2311,6 +2311,273 @@ class RGBViewDialog(QtWidgets.QDialog):
     def _export_png(self):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Export RGB View", f"rgbview_{self.ann.id}.png", "PNG (*.png)"
+        )
+        if not path:
+            return
+        exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
+        exporter.export(path)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Measure Time and Distance Dialog
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MeasureDialog(QtWidgets.QDialog):
+    """
+    Measure time and distance between two points on a DAS waterfall crop.
+
+    Shows a cropped view of the annotation region (with 50% margin) using
+    the currently active tab's array and colormap. The user clicks Pick Points
+    to enter pick mode and places two clicks on the image. The dialog reports:
+      - Δt  (time difference in seconds)
+      - Δd  (distance difference in metres)
+      - v   (apparent velocity = Δd / Δt in m/s)
+
+    Results can be saved back to the annotation CSV.
+    """
+
+    measure_saved = QtCore.pyqtSignal(float, float, float)  # (dt, dd, v)
+
+    def __init__(self, ann, dataset, colormap: pg.ColorMap,
+                 vmin: float = None, vmax: float = None,
+                 tr_display: np.ndarray = None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(
+            f"Measure - Event [{ann.id}]  "
+            f"t={ann.t0:.2f}–{ann.t1:.2f} s  "
+            f"d={ann.d0:.0f}–{ann.d1:.0f} m"
+        )
+        self.setWindowFlags(
+            self.windowFlags()
+            | QtCore.Qt.WindowMinimizeButtonHint
+            | QtCore.Qt.WindowMaximizeButtonHint
+        )
+        screen = QtWidgets.QApplication.primaryScreen().availableGeometry()
+        self.resize(int(screen.width() * 0.55), int(screen.height() * 0.55))
+
+        self.ann        = ann
+        self.dataset    = dataset
+        self.cmap       = colormap
+        self._tr        = tr_display
+        self._ext_vmin  = vmin
+        self._ext_vmax  = vmax
+        self._picking   = False
+        self._picks     = []   # list of (t, d) tuples
+
+        # View region with 50% margin
+        _mt = (ann.t1 - ann.t0) * 0.5
+        _md = (ann.d1 - ann.d0) * 0.5
+        self._t0 = max(float(dataset.time_s[0]),  ann.t0 - _mt)
+        self._t1 = min(float(dataset.time_s[-1]), ann.t1 + _mt)
+        self._d0 = max(float(dataset.dist_m[0]),  ann.d0 - _md)
+        self._d1 = min(float(dataset.dist_m[-1]), ann.d1 + _md)
+
+        self._build_ui()
+        self._render()
+
+    def _build_ui(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setSpacing(4)
+        layout.setContentsMargins(6, 6, 6, 6)
+
+        # ── Control bar ───────────────────────────────────────────────
+        ctrl = QtWidgets.QHBoxLayout()
+        ctrl.setSpacing(6)
+
+        self.btn_pick = QtWidgets.QPushButton("Pick Points")
+        self.btn_pick.setMinimumWidth(100)
+        self.btn_pick.setCheckable(True)
+        self.btn_pick.clicked.connect(self._on_pick_toggled)
+        ctrl.addWidget(self.btn_pick)
+
+        self.btn_clear = QtWidgets.QPushButton("Clear")
+        self.btn_clear.setMinimumWidth(70)
+        self.btn_clear.clicked.connect(self._on_clear)
+        ctrl.addWidget(self.btn_clear)
+
+        ctrl.addSpacing(12)
+        self.lbl_result = QtWidgets.QLabel("Pick two points to measure")
+        self.lbl_result.setMinimumWidth(360)
+        ctrl.addWidget(self.lbl_result)
+
+        ctrl.addStretch()
+
+        self.chk_grid = QtWidgets.QCheckBox("Grid")
+        self.chk_grid.setChecked(False)
+        ctrl.addWidget(self.chk_grid)
+
+        ctrl.addSpacing(8)
+        self.btn_save = QtWidgets.QPushButton("Save to annotation")
+        self.btn_save.setMinimumWidth(130)
+        self.btn_save.setEnabled(False)
+        self.btn_save.clicked.connect(self._on_save)
+        ctrl.addWidget(self.btn_save)
+
+        btn_export = QtWidgets.QPushButton("Export")
+        btn_export.setMinimumWidth(70)
+        btn_export.clicked.connect(self._export_png)
+        ctrl.addWidget(btn_export)
+
+        layout.addLayout(ctrl)
+
+        # ── Plot ──────────────────────────────────────────────────────
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setLabel("bottom", "Time [s]")
+        self.plot_widget.setLabel("left",   "Distance [m]")
+
+        self.image_item = pg.ImageItem()
+        self.image_item.setAutoDownsample(True)
+        self.plot_widget.addItem(self.image_item)
+
+        self.histogram = pg.HistogramLUTWidget()
+        self.histogram.setImageItem(self.image_item)
+        self.histogram.gradient.setColorMap(self.cmap)
+        self.histogram.setFixedWidth(70)
+        self.histogram.item.gradient.setFixedWidth(14)
+        self.histogram.item.vb.setFixedWidth(36)
+
+        # Annotation boundary lines (hidden by default)
+        pen_box = pg.mkPen(color=(255, 255, 255), width=2, style=QtCore.Qt.DashLine)
+        self._ann_lines = []
+        for pos in [self.ann.t0, self.ann.t1]:
+            line = pg.InfiniteLine(pos=pos, angle=90, pen=pen_box)
+            line.setVisible(False)
+            self.plot_widget.addItem(line)
+            self._ann_lines.append(line)
+        for pos in [self.ann.d0, self.ann.d1]:
+            line = pg.InfiniteLine(pos=pos, angle=0, pen=pen_box)
+            line.setVisible(False)
+            self.plot_widget.addItem(line)
+            self._ann_lines.append(line)
+
+        self.chk_grid.toggled.connect(
+            lambda on: [line.setVisible(on) for line in self._ann_lines]
+        )
+
+        # Pick scatter
+        self._scatter = pg.ScatterPlotItem(
+            size=12,
+            pen=pg.mkPen(color=(0, 200, 255), width=2),
+            brush=pg.mkBrush(0, 200, 255, 180),
+        )
+        self.plot_widget.addItem(self._scatter)
+
+        # Measurement line
+        self._meas_line = self.plot_widget.plot(
+            [], [],
+            pen=pg.mkPen(color=(0, 200, 255), width=2, style=QtCore.Qt.DashLine),
+        )
+
+        self.plot_widget.scene().sigMouseClicked.connect(self._on_scene_clicked)
+
+        plot_row = QtWidgets.QHBoxLayout()
+        plot_row.addWidget(self.plot_widget, 1)
+        plot_row.addWidget(self.histogram)
+        layout.addLayout(plot_row, 1)
+
+    def _render(self):
+        ds  = self.dataset
+        tr  = self._tr if self._tr is not None else ds.tr
+
+        if tr.shape[0] != ds.n_dist:
+            tr = ds.tr
+
+        ti0 = max(0, int(np.argmin(np.abs(ds.time_s - self._t0))))
+        ti1 = min(ds.n_time, int(np.argmin(np.abs(ds.time_s - self._t1))) + 1)
+        di0 = max(0, int(np.argmin(np.abs(ds.dist_m - self._d0))))
+        di1 = min(ds.n_dist, int(np.argmin(np.abs(ds.dist_m - self._d1))) + 1)
+
+        tr_crop = tr[di0:di1, ti0:ti1].astype(np.float32)
+
+        x0 = float(ds.time_s[ti0])
+        x1 = float(ds.time_s[min(ti1 - 1, ds.n_time - 1)])
+        y0 = float(ds.dist_m[di0])
+        y1 = float(ds.dist_m[min(di1 - 1, ds.n_dist - 1)])
+
+        p99  = float(np.percentile(np.abs(tr_crop), 99)) if tr_crop.size else 1.0
+        vmin = float(self._ext_vmin) if self._ext_vmin is not None else -p99
+        vmax = float(self._ext_vmax) if self._ext_vmax is not None else  p99
+        if vmin >= vmax:
+            vmax = vmin + 1.0
+
+        self.image_item.sigImageChanged.disconnect(self.histogram.item.imageChanged)
+        self.image_item.setImage(tr_crop, autoLevels=False, levels=[vmin, vmax])
+        self.image_item.setRect(QtCore.QRectF(x0, y0, x1 - x0, y1 - y0))
+        self.image_item.sigImageChanged.connect(self.histogram.item.imageChanged)
+        self.histogram.item.imageChanged(autoLevel=False)
+        self.histogram.setLevels(vmin, vmax)
+        self.plot_widget.setLimits(xMin=x0, xMax=x1, yMin=y0, yMax=y1)
+        self.plot_widget.setRange(xRange=(x0, x1), yRange=(y0, y1), padding=0.02)
+
+    def _on_pick_toggled(self, checked: bool) -> None:
+        self._picking = checked
+        if checked:
+            self.btn_pick.setText("Stop Picking")
+            self.plot_widget.setCursor(QtCore.Qt.CrossCursor)
+        else:
+            self.btn_pick.setText("Pick Points")
+            self.plot_widget.setCursor(QtCore.Qt.ArrowCursor)
+
+    def _on_scene_clicked(self, ev) -> None:
+        from PyQt5.QtCore import Qt
+        if not self._picking:
+            return
+        if ev.button() != Qt.LeftButton:
+            return
+
+        pos = self.plot_widget.plotItem.vb.mapSceneToView(ev.scenePos())
+        t, d = pos.x(), pos.y()
+
+        self._picks.append((t, d))
+        if len(self._picks) > 2:
+            self._picks = self._picks[-2:]
+
+        self._update_picks()
+
+    def _update_picks(self) -> None:
+        if not self._picks:
+            self._scatter.setData([], [])
+            self._meas_line.setData([], [])
+            self.lbl_result.setText("Pick two points to measure")
+            self.btn_save.setEnabled(False)
+            return
+
+        xs = [p[0] for p in self._picks]
+        ys = [p[1] for p in self._picks]
+        self._scatter.setData(xs, ys)
+
+        if len(self._picks) == 2:
+            self._meas_line.setData(xs, ys)
+            dt = self._picks[1][0] - self._picks[0][0]
+            dd = self._picks[1][1] - self._picks[0][1]
+            v  = dd / dt if abs(dt) > 1e-9 else float('inf')
+            self._dt = dt
+            self._dd = dd
+            self._v  = v
+            v_str = f"{v:.1f}" if abs(v) < 1e6 else "∞"
+            self.lbl_result.setText(
+                f"Δt = {dt:.4f} s    Δd = {dd:.1f} m    v = {v_str} m/s"
+            )
+            self.btn_save.setEnabled(True)
+        else:
+            self._meas_line.setData([], [])
+            self.lbl_result.setText("Pick a second point…")
+            self.btn_save.setEnabled(False)
+
+    def _on_clear(self) -> None:
+        self._picks = []
+        self._update_picks()
+
+    def _on_save(self) -> None:
+        if len(self._picks) < 2:
+            return
+        self.measure_saved.emit(self._dt, self._dd, self._v)
+        self.btn_save.setEnabled(False)
+        self.btn_save.setText("Saved")
+
+    def _export_png(self):
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Export Measure", f"measure_{self.ann.id}.png", "PNG (*.png)"
         )
         if not path:
             return
