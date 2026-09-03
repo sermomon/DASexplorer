@@ -436,7 +436,6 @@ class SpectralDialog(QtWidgets.QDialog):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Frequency [Hz]")
         self.plot_widget.setLabel("left", "Magnitude [a.u.]")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
         layout.addWidget(self.plot_widget, 1)
 
     def _plot(self):
@@ -646,7 +645,6 @@ class SignalDialog(QtWidgets.QDialog):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Time [s]")
         self.plot_widget.setLabel("left",   "Amplitude [a.u.]")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
 
         # Bbox time markers (red dashed)
         pen_box = pg.mkPen(color=(220, 50, 50), width=1.5,
@@ -926,7 +924,6 @@ class SignalFreqDialog(QtWidgets.QDialog):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Frequency [Hz]")
         self.plot_widget.setLabel("left",   "Magnitude")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
 
         self.scrollbar = QtWidgets.QScrollBar(QtCore.Qt.Vertical)
         self.scrollbar.setRange(self._di0, max(self._di1 - 1, self._di0))
@@ -1193,7 +1190,6 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Time [s]")
         self.plot_widget.setLabel("left",   "Envelope amplitude [a.u.]")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
 
         pen_box = pg.mkPen(color=(220, 50, 50), width=1.5, style=QtCore.Qt.DashLine)
         self._vline0 = pg.InfiniteLine(pos=self.ann.t0, angle=90, pen=pen_box)
@@ -1427,7 +1423,6 @@ class SignalPhaseDialog(QtWidgets.QDialog):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel("bottom", "Time [s]")
         self.plot_widget.setLabel("left",   "Unwrapped phase [rad]")
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
 
         pen_box = pg.mkPen(color=(220, 50, 50), width=1.5, style=QtCore.Qt.DashLine)
         self._vline0 = pg.InfiniteLine(pos=self.ann.t0, angle=90, pen=pen_box)
@@ -1639,11 +1634,19 @@ class VelocityDialog(QtWidgets.QDialog):
         btn_export.setMinimumWidth(90)
         btn_export.clicked.connect(self._export_png)
 
+        self.chk_grid = QtWidgets.QCheckBox("Grid")
+        self.chk_grid.setChecked(False)
+        self.chk_grid.toggled.connect(
+            lambda on: [line.setVisible(on) for line in self._ann_lines]
+        )
+
         ctrl.addWidget(self.btn_pick)
         ctrl.addWidget(self.btn_clear)
         ctrl.addSpacing(12)
         ctrl.addWidget(self.lbl_result)
         ctrl.addStretch()
+        ctrl.addWidget(self.chk_grid)
+        ctrl.addSpacing(8)
         ctrl.addWidget(self.btn_save)
         ctrl.addWidget(btn_export)
         layout.addLayout(ctrl)
@@ -1666,15 +1669,20 @@ class VelocityDialog(QtWidgets.QDialog):
         self.histogram.item.gradient.setFixedWidth(14)
         self.histogram.item.vb.setFixedWidth(36)
 
-        # Bbox boundary (yellow dashed rectangle lines)
-        pen_box = pg.mkPen(color=(255, 220, 0), width=1.5,
+        # Bbox boundary (dashed rectangle lines, hidden by default)
+        pen_box = pg.mkPen(color=(255, 255, 255), width=2,
                             style=QtCore.Qt.DashLine)
+        self._ann_lines = []
         for pos, angle in [(self.ann.t0, 90), (self.ann.t1, 90)]:
             vl = pg.InfiniteLine(pos=pos, angle=angle, pen=pen_box)
+            vl.setVisible(False)
             self.plot_widget.addItem(vl)
+            self._ann_lines.append(vl)
         for pos in [self.ann.d0, self.ann.d1]:
             hl = pg.InfiniteLine(pos=pos, angle=0, pen=pen_box)
+            hl.setVisible(False)
             self.plot_widget.addItem(hl)
+            self._ann_lines.append(hl)
 
         # Pick points scatter
         self._scatter = pg.ScatterPlotItem(
@@ -1960,6 +1968,11 @@ class FKViewDialog(QtWidgets.QDialog):
         self.chk_env.setChecked(False)
         ctrl.addWidget(self.chk_env)
 
+        ctrl.addSpacing(8)
+        self.chk_grid = QtWidgets.QCheckBox("Grid")
+        self.chk_grid.setChecked(False)
+        ctrl.addWidget(self.chk_grid)
+
         btn_apply = QtWidgets.QPushButton("Apply")
         btn_apply.setMinimumWidth(70)
         btn_apply.clicked.connect(self._on_apply)
@@ -1988,17 +2001,28 @@ class FKViewDialog(QtWidgets.QDialog):
         self.histogram.item.gradient.setFixedWidth(14)
         self.histogram.item.vb.setFixedWidth(36)
 
-        # Annotation boundary dashes
+        # Annotation boundary dashes (hidden by default, toggled by Grid checkbox)
         pen_box = pg.mkPen(color=(255, 255, 255), width=2, style=QtCore.Qt.DashLine)
+        self._ann_lines = []
         for pos in [self.ann.t0, self.ann.t1]:
-            self.plot_widget.addItem(pg.InfiniteLine(pos=pos, angle=90, pen=pen_box))
+            line = pg.InfiniteLine(pos=pos, angle=90, pen=pen_box)
+            line.setVisible(False)
+            self.plot_widget.addItem(line)
+            self._ann_lines.append(line)
         for pos in [self.ann.d0, self.ann.d1]:
-            self.plot_widget.addItem(pg.InfiniteLine(pos=pos, angle=0, pen=pen_box))
+            line = pg.InfiniteLine(pos=pos, angle=0, pen=pen_box)
+            line.setVisible(False)
+            self.plot_widget.addItem(line)
+            self._ann_lines.append(line)
 
         row = QtWidgets.QHBoxLayout()
         row.addWidget(self.plot_widget, 1)
         row.addWidget(self.histogram)
         layout.addLayout(row, 1)
+
+        self.chk_grid.toggled.connect(
+            lambda on: [line.setVisible(on) for line in self._ann_lines]
+        )
 
     def _compute_and_render(self):
         ds     = self.dataset
@@ -2186,6 +2210,11 @@ class RGBViewDialog(QtWidgets.QDialog):
         ctrl.addWidget(self.spin_pct)
 
         ctrl.addSpacing(8)
+        self.chk_grid = QtWidgets.QCheckBox("Grid")
+        self.chk_grid.setChecked(False)
+        ctrl.addWidget(self.chk_grid)
+
+        ctrl.addSpacing(8)
         btn_apply = QtWidgets.QPushButton("Apply")
         btn_apply.setMinimumWidth(70)
         btn_apply.clicked.connect(self._on_apply)
@@ -2210,10 +2239,21 @@ class RGBViewDialog(QtWidgets.QDialog):
 
         # Annotation boundary dashes
         pen_box = pg.mkPen(color=(255, 255, 255), width=2, style=QtCore.Qt.DashLine)
+        self._ann_lines = []
         for pos in [self.ann.t0, self.ann.t1]:
-            self.plot_widget.addItem(pg.InfiniteLine(pos=pos, angle=90, pen=pen_box))
+            line = pg.InfiniteLine(pos=pos, angle=90, pen=pen_box)
+            line.setVisible(False)
+            self.plot_widget.addItem(line)
+            self._ann_lines.append(line)
         for pos in [self.ann.d0, self.ann.d1]:
-            self.plot_widget.addItem(pg.InfiniteLine(pos=pos, angle=0, pen=pen_box))
+            line = pg.InfiniteLine(pos=pos, angle=0, pen=pen_box)
+            line.setVisible(False)
+            self.plot_widget.addItem(line)
+            self._ann_lines.append(line)
+
+        self.chk_grid.toggled.connect(
+            lambda on: [line.setVisible(on) for line in self._ann_lines]
+        )
 
         layout.addWidget(self.plot_widget, 1)
 
