@@ -1,6 +1,5 @@
 {
     "_comment": "DAS Explorer configuration. Each profile defines an interrogator + visualisation defaults.",
-
     "default_profile": "optasense_v1",
     "profiles": {
         "hdas25_v1": {
@@ -39,8 +38,7 @@
             "read_dmax_m": null,
             "reader": "hdas2.5_v1"
         },
-        
-	"optasense_v1": {
+        "optasense_v1": {
             "label": "Luna Inn. OptaSense (.h5) OOI-RCA 2021",
             "file_extensions": [
                 ".h5"
@@ -64,20 +62,19 @@
             "fk_fmax_offset_hz": 0.01,
             "fk_envelope": true,
             "default_view": "raw",
-            "rgb_rmin_hz": 1.0,
-            "rgb_rmax_hz": 5.0,
-            "rgb_gmin_hz": 5.0,
-            "rgb_gmax_hz": 15.0,
-            "rgb_bmin_hz": 15.0,
-            "rgb_bmax_hz": 40.0,
+            "rgb_rmin_hz": 16.0,
+            "rgb_rmax_hz": 20.0,
+            "rgb_gmin_hz": 20.0,
+            "rgb_gmax_hz": 28.0,
+            "rgb_bmin_hz": 5.0,
+            "rgb_bmax_hz": 16.0,
             "rgb_percentile": 90.0,
             "num_files": 1,
             "read_dmin_m": 20000.0,
             "read_dmax_m": 65000.0,
             "reader": "optasense_v1"
         },
-        
-	"silixa_v1": {
+        "silixa_v1": {
             "label": "Silixa iDAS (.tdms) OOI-RCA 2021",
             "file_extensions": [
                 ".tdms"
@@ -113,8 +110,7 @@
             "reader": "silixa_v1",
             "num_files": 1
         },
-        
-	"optodas_v1": {
+        "optodas_v1": {
             "label": "ASN OptoDAS (.hdf5) OOI-RCA 2024",
             "file_extensions": [
                 ".hdf5"
@@ -150,8 +146,7 @@
             "reader": "optodas_v1",
             "num_files": 1
         },
-        
-	"svalbard_v1": {
+        "svalbard_v1": {
             "label": "ASN OptoDAS (.mat) Svalbard-2020",
             "file_extensions": [
                 ".mat"
@@ -188,17 +183,17 @@
             "num_files": 1
         }
     },
-    
-	"ui": {
+    "ui": {
         "theme": "dark",
         "hidpi_scaling": false,
         "font_size_offset": 0,
         "left_panel_scroll": false,
         "compact_spinboxes": false,
         "annotation_colors": {
-            "bbox": [255, 220, 255],
-            "obb": [255, 255, 255],
-            "kp": [255, 255, 255],
-            "line": [255, 255, 255]}
+            "bbox": [255,255,255],
+            "obb": [255,255,255],
+            "kp": [255,255,255],
+            "line": [255,255,255]
+        }
     }
 }

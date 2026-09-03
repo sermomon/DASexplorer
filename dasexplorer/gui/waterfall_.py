@@ -207,8 +207,6 @@ class WaterfallWidget(QtWidgets.QWidget):
     roi_signal_env_requested   = QtCore.pyqtSignal(int)
     roi_signal_phase_requested = QtCore.pyqtSignal(int)
     roi_velocity_requested     = QtCore.pyqtSignal(int)
-    roi_fk_view_requested      = QtCore.pyqtSignal(int)
-    roi_rgb_view_requested     = QtCore.pyqtSignal(int)
     # Emitted when the user finishes dragging the histogram level triangles
     levels_changed             = QtCore.pyqtSignal(float, float)  # (vmin, vmax)
 
@@ -1557,14 +1555,6 @@ class WaterfallWidget(QtWidgets.QWidget):
         sig_env_action     = menu.addAction("Signal (envelope)")
         sig_phase_action   = menu.addAction("Signal (phase)")
         velocity_action    = menu.addAction("Estimate Velocity")
-        # FK View and RGB View only for BBox and OBBox
-        if ann_type in (None, AnnType.BBOX, AnnType.OBB):
-            menu.addSeparator()
-            fk_view_action  = menu.addAction("F-K View")
-            rgb_view_action = menu.addAction("RGB View")
-        else:
-            fk_view_action  = None
-            rgb_view_action = None
         action = menu.exec_(QCursor.pos())
         if action == edit_event_action:
             self.roi_edit_requested.emit(idx)
@@ -1586,10 +1576,6 @@ class WaterfallWidget(QtWidgets.QWidget):
             self.roi_signal_phase_requested.emit(idx)
         elif action == velocity_action:
             self.roi_velocity_requested.emit(idx)
-        elif fk_view_action is not None and action == fk_view_action:
-            self.roi_fk_view_requested.emit(idx)
-        elif rgb_view_action is not None and action == rgb_view_action:
-            self.roi_rgb_view_requested.emit(idx)
 
     # ------------------------------------------------------------------
     # Overlay

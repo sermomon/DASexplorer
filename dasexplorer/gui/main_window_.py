@@ -23,7 +23,6 @@ from dasexplorer.core.readers import (
 from dasexplorer.gui.annotation_widget import AnnotationWidget
 from dasexplorer.gui.analysis_dialogs import (
     SpectrogramDialog, SpectralDialog, SignalDialog,
-    FKViewDialog, RGBViewDialog,
     SignalFreqDialog, SignalEnvelopeDialog, SignalPhaseDialog,
     VelocityDialog,
 )
@@ -647,8 +646,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall.roi_signal_env_requested.connect(self._on_show_signal_env)
         self.waterfall.roi_signal_phase_requested.connect(self._on_show_signal_phase)
         self.waterfall.roi_velocity_requested.connect(self._on_show_velocity)
-        self.waterfall.roi_fk_view_requested.connect(self._on_show_fk_view)
-        self.waterfall.roi_rgb_view_requested.connect(self._on_show_rgb_view)
         self.waterfall.levels_changed.connect(self._on_histogram_levels_changed)
         self.tab_widget.addTab(self.waterfall, "Raw")
 
@@ -665,8 +662,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall_fk.roi_signal_env_requested.connect(self._on_show_signal_env)
         self.waterfall_fk.roi_signal_phase_requested.connect(self._on_show_signal_phase)
         self.waterfall_fk.roi_velocity_requested.connect(self._on_show_velocity)
-        self.waterfall_fk.roi_fk_view_requested.connect(self._on_show_fk_view)
-        self.waterfall_fk.roi_rgb_view_requested.connect(self._on_show_rgb_view)
         self.waterfall_fk.annotation_mode_changed_fk = False
         self.tab_widget.addTab(self.waterfall_fk, "F-K")
 
@@ -683,8 +678,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.waterfall_rgb.roi_signal_env_requested.connect(self._on_show_signal_env)
         self.waterfall_rgb.roi_signal_phase_requested.connect(self._on_show_signal_phase)
         self.waterfall_rgb.roi_velocity_requested.connect(self._on_show_velocity)
-        self.waterfall_rgb.roi_fk_view_requested.connect(self._on_show_fk_view)
-        self.waterfall_rgb.roi_rgb_view_requested.connect(self._on_show_rgb_view)
         self.tab_widget.addTab(self.waterfall_rgb, "   ")
 
         # Live tab (placeholder)
@@ -1853,53 +1846,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # ------------------------------------------------------------------
     # Cursor info
-    def _on_show_fk_view(self, index: int) -> None:
-        from dasexplorer.gui.waterfall import COLORMAPS
-        ann = self._get_analysis_ann(index)
-        if ann is None:
-            self._status_error(f"FK View: could not resolve annotation (flat_idx={index})")
-            return
-        ds = self._analysis_dataset()
-        if ds is None:
-            self._status_error("FK View: no dataset loaded")
-            return
-        cmap_idx = self.waterfall.combo_cmap.currentIndex()
-        try:
-            cmap = pg.colormap.get(COLORMAPS[cmap_idx][1], source="matplotlib")
-        except Exception:
-            cmap = pg.colormap.get(COLORMAPS[cmap_idx][1])
-        dlg = FKViewDialog(
-            ann=ann, dataset=ds, colormap=cmap,
-            c_min=self.spin_cmin.value(),
-            c_max=self.spin_cmax.value(),
-            fk_fmin=self.spin_fkmin.value(),
-            fk_fmax=self.spin_fkmax.value(),
-            vmin=self.spin_vmin.value(),
-            vmax=self.spin_vmax.value(),
-            tr_bandpass=self.waterfall.get_bandpass_array(),
-            parent=self,
-        )
-        dlg.show()
-
-    def _on_show_rgb_view(self, index: int) -> None:
-        ann = self._get_analysis_ann(index)
-        if ann is None:
-            return
-        ds = self._analysis_dataset()
-        try:
-            dlg = RGBViewDialog(
-                ann=ann, dataset=ds,
-                r_min=self.spin_rmin.value(), r_max=self.spin_rmax.value(),
-                g_min=self.spin_gmin.value(), g_max=self.spin_gmax.value(),
-                b_min=self.spin_bmin.value(), b_max=self.spin_bmax.value(),
-                percentile=self.spin_rgb_pct.value(),
-                tr_src=ds.tr,
-                parent=self,
-            )
-            dlg.show()
-        except Exception as exc:
-            self._status_error(f"RGB View error: {exc}")
-
     # ------------------------------------------------------------------
 
     def _on_cursor_info(self, text: str) -> None:
