@@ -1,0 +1,4 @@
+_apply_rgb called
+  tr.shape=(22040, 12000) fs=200.0
+  tr range=[-1.1045e+03, 1.1347e+03]
+  rgb.shape=(22040, 12000, 3) max=255 mean=76.54

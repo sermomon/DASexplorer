@@ -8,7 +8,7 @@ import pyqtgraph as pg
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from dasexplorer.core.data_model import DASDataset
-from dasexplorer.core.annotations import AnnType
+from dasexplorer.core.annotations_model import AnnType
 from dasexplorer.gui import theme
 
 COLORMAPS = [
@@ -1802,11 +1802,8 @@ class WaterfallWidget(QtWidgets.QWidget):
         return self._tr_bandpass
 
     def compute_bandpass(self, fmin: float, fmax: float) -> np.ndarray:
-        import scipy.signal as sp
-        fs  = self.dataset.fs_hz
-        nyq = fs / 2.0
-        sos = sp.butter(5, [fmin / nyq, fmax / nyq], btype="bandpass", output="sos")
-        return sp.sosfiltfilt(sos, self.dataset.tr, axis=1).astype(np.float32)
+        from dasexplorer.core.processing import bandpass_filter
+        return bandpass_filter(self.dataset.tr, self.dataset.fs_hz, fmin, fmax)
 
     def compute_envelope(self, tr: np.ndarray) -> np.ndarray:
         """
@@ -1817,11 +1814,8 @@ class WaterfallWidget(QtWidgets.QWidget):
         if self._tr_envelope is not None and self._tr_envelope_src is tr:
             return self._tr_envelope
 
-        import scipy.signal as sp
-        from scipy.fft import next_fast_len
-        n   = tr.shape[1]
-        nfft = next_fast_len(n)
-        env = np.abs(sp.hilbert(tr, N=nfft, axis=1)[:, :n]).astype(np.float32)
+        from dasexplorer.core.processing import hilbert_envelope
+        env = hilbert_envelope(tr)
 
         self._tr_envelope     = env
         self._tr_envelope_src = tr

@@ -6,7 +6,7 @@ Four annotation modes: BBox, OBB, Keypoints, Line.
 import os
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-from dasexplorer.core.annotations import AnnotationModel, AnnType, ANN_LABEL
+from dasexplorer.core.annotations_model import AnnotationModel, AnnType, ANN_LABEL
 from dasexplorer.gui import theme
 
 
@@ -240,7 +240,7 @@ class AnnotationWidget(QtWidgets.QWidget):
             return
         ann_type, local_idx = data
         # Compute flat_idx: sum of all models before this type + local_idx
-        from dasexplorer.core.annotations import AnnType as AT
+        from dasexplorer.core.annotations_model import AnnType as AT
         order = (AT.BBOX, AT.OBB, AT.KP, AT.LINE)
         # We don't have access to _ann_models here, so emit (ann_type, local_idx, new_id)
         # and let main_window resolve; we reuse the UserRole tuple

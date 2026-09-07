@@ -11,7 +11,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-from dasexplorer.core.annotations import (
+from dasexplorer.core.annotations_model import (
     AnnotationModel, AnnType, ANN_LABEL, ANN_SUFFIX,
     BBoxAnnotation, OBBAnnotation, KeypointAnnotation, LineAnnotation,
 )
@@ -1495,7 +1495,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         if self.dataset is None:
             return
-        from dasexplorer.core.annotations import AnnotationModel
+        from dasexplorer.core.annotations_model import AnnotationModel
         for model in self._ann_models.values():
             model.time_s = self.dataset.time_s
             model.dist_m = self.dataset.dist_m

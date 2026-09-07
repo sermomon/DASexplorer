@@ -276,7 +276,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
           xRange=(t0_s, t1_s + dt_r), yRange=(y0, y1 + df_r), padding=0)
 
         self.setWindowTitle(
-            f"Spectrogram - Event [{self.ann.id}]  "
+            f"Spectrogram — Event [{self.ann.id}]  "
             f"Channel {ch} ({dist:.0f} m)  "
             f"t={self.ann.t0:.2f}–{self.ann.t1:.2f} s"
         )
@@ -355,7 +355,7 @@ class SpectralDialog(QtWidgets.QDialog):
     def __init__(self, ann, dataset, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Spectral Analysis - Event: [{ann.id}]  "
+            f"Spectral Analysis  —  Event: [{ann.id}]  "
             f"t={ann.t0:.2f}–{ann.t1:.2f}s"
         )
         # ~50% of screen, with native minimize/maximize buttons
@@ -394,7 +394,7 @@ class SpectralDialog(QtWidgets.QDialog):
         n_shown = len(select_channels_for_spectral(di0, di1, self.MAX_SPECTRUMS))
         n_total = di1 - di0
         self.setWindowTitle(
-            f"Spectral Analysis - Event [{ann.id}]  "
+            f"Spectral Analysis — Event [{ann.id}]  "
             f"Channels {di0}–{di1}  ({n_shown}/{n_total})  "
             f"Time {ann.t0:.2f}–{ann.t1:.2f} s"
         )
@@ -539,7 +539,7 @@ class SignalDialog(QtWidgets.QDialog):
     def __init__(self, ann, dataset, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Signal (time domain) - Event [{ann.id}]  "
+            f"Signal (time domain) — Event [{ann.id}]  "
             f"d={ann.d0:.0f}–{ann.d1:.0f} m  "
             f"t={ann.t0:.2f}–{ann.t1:.2f} s"
         )
@@ -712,7 +712,7 @@ class SignalDialog(QtWidgets.QDialog):
         )
         self.lbl_info.setText(f"Channel: {ch}  ({dist:.0f} m){fixed_info}")
         self.setWindowTitle(
-            f"Signal (time domain) - Event [{self.ann.id}]  "
+            f"Signal (time domain) — Event [{self.ann.id}]  "
             f"Channel {ch}  ({dist:.0f} m)"
         )
 
@@ -1213,9 +1213,9 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         layout.addLayout(plot_row, 1)
 
     def _compute_envelope(self, ch: int) -> np.ndarray:
-        import scipy.signal as sp
-        sig = self.dataset.tr[ch, :].astype(np.float64)
-        return np.abs(sp.hilbert(sig))
+        from dasexplorer.core.processing import hilbert_envelope
+        sig = self.dataset.tr[ch:ch+1, :].astype(np.float32)
+        return hilbert_envelope(sig).ravel()
 
     def _plot(self, ch: int):
         self._cur_ch = ch
@@ -1566,7 +1566,7 @@ class VelocityDialog(QtWidgets.QDialog):
                  tr_display: np.ndarray = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Estimate Velocity - Event [{ann.id}]  "
+            f"Estimate Velocity — Event [{ann.id}]  "
             f"t={ann.t0:.2f}–{ann.t1:.2f} s  "
             f"d={ann.d0:.0f}–{ann.d1:.0f} m"
         )
@@ -2343,7 +2343,7 @@ class MeasureDialog(QtWidgets.QDialog):
                  tr_display: np.ndarray = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            f"Measure - Event [{ann.id}]  "
+            f"Measure — Event [{ann.id}]  "
             f"t={ann.t0:.2f}–{ann.t1:.2f} s  "
             f"d={ann.d0:.0f}–{ann.d1:.0f} m"
         )
@@ -2457,15 +2457,15 @@ class MeasureDialog(QtWidgets.QDialog):
         # Pick scatter
         self._scatter = pg.ScatterPlotItem(
             size=12,
-            pen=pg.mkPen(color=(0, 200, 255), width=2),
-            brush=pg.mkBrush(0, 200, 255, 180),
+            pen=pg.mkPen(color=(255, 255, 255), width=2),
+            brush=pg.mkBrush(255, 255, 255, 175),
         )
         self.plot_widget.addItem(self._scatter)
 
         # Measurement line
         self._meas_line = self.plot_widget.plot(
             [], [],
-            pen=pg.mkPen(color=(0, 200, 255), width=2, style=QtCore.Qt.DashLine),
+            pen=pg.mkPen(color=(255, 255, 255), width=2, style=QtCore.Qt.DashLine),
         )
 
         self.plot_widget.scene().sigMouseClicked.connect(self._on_scene_clicked)
