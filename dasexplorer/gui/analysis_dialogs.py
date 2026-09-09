@@ -1,3 +1,30 @@
+
+TOGGLE_SWITCH_ON = """
+    QPushButton {
+        background-color: #4CAF50;
+        border-radius: 12px;
+        color: white;
+        font-weight: bold;
+        font-size: 9pt;
+        padding: 2px 8px;
+        min-width: 64px;
+        min-height: 22px;
+        border: none;
+    }
+"""
+TOGGLE_SWITCH_OFF = """
+    QPushButton {
+        background-color: #888888;
+        border-radius: 12px;
+        color: white;
+        font-weight: bold;
+        font-size: 9pt;
+        padding: 2px 8px;
+        min-width: 64px;
+        min-height: 22px;
+        border: none;
+    }
+"""
 """
 Analysis dialog windows for DAS Explorer.
 
@@ -59,6 +86,23 @@ def _param_row(*pairs) -> QtWidgets.QHBoxLayout:
 # A) Spectrogram dialog  — pyqtgraph ImageItem + bilinear zoom for smooth rendering
 # ---------------------------------------------------------------------------
 
+def _make_filter_toggle(toggled_callback):
+    """Create a styled ON/OFF toggle button for the Filter parameter."""
+    btn = QtWidgets.QPushButton("Filter  ON")
+    btn.setCheckable(True)
+    btn.setChecked(True)
+    btn.setStyleSheet(TOGGLE_SWITCH_ON)
+    btn.setMinimumWidth(80)
+
+    def _on_toggled(checked):
+        btn.setText("Filter  ON" if checked else "Filter OFF")
+        btn.setStyleSheet(TOGGLE_SWITCH_ON if checked else TOGGLE_SWITCH_OFF)
+        toggled_callback(checked)
+
+    btn.toggled.connect(_on_toggled)
+    return btn
+
+
 class SpectrogramDialog(QtWidgets.QDialog):
     """
     Time-frequency spectrogram rendered with pyqtgraph ImageItem.
@@ -74,7 +118,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
 
     _ZOOM = 4   # upsampling factor applied to both axes before display
 
-    def __init__(self, ann, dataset, colormap: pg.ColorMap, parent=None):
+    def __init__(self, ann, dataset, colormap: pg.ColorMap, tr_full=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
             f"Spectrogram — Event [{ann.id}]  "
@@ -91,6 +135,8 @@ class SpectrogramDialog(QtWidgets.QDialog):
 
         self.ann = ann
         self.dataset = dataset
+        self._dataset_filtered = dataset
+        self._dataset_full = tr_full if tr_full is not None else dataset
         self.cmap = colormap
         self._cache = {} # (ch, nperseg, noverlap, nfft) → (f, t, Sxx_db)
 
@@ -166,6 +212,8 @@ class SpectrogramDialog(QtWidgets.QDialog):
         param_row.addSpacing(8)
         param_row.addWidget(lbl_ch_ctrl)
         param_row.addWidget(self.spin_channel)
+        self.btn_filter = _make_filter_toggle(self._on_filter_toggled_sg)
+        param_row.addWidget(self.btn_filter)
         param_row.addWidget(btn_apply)
         param_row.addWidget(btn_export)
         layout.addLayout(param_row)
@@ -288,6 +336,12 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self.spin_channel.blockSignals(False)
         self._plot(val, update_range=False)
 
+    def _on_filter_toggled_sg(self, checked: bool) -> None:
+        self.btn_filter.setText("Filter ON" if checked else "Filter OFF")
+        self.dataset = self._dataset_filtered if checked else self._dataset_full
+        self._cache.clear()
+        self._plot(self._cur_ch)
+
     def _on_channel_spinbox(self, val: int):
         """Jump directly to a channel by typing its index."""
         val = max(self._di0, min(val, self._di1 - 1))
@@ -352,7 +406,7 @@ class SpectralDialog(QtWidgets.QDialog):
 
     MAX_SPECTRUMS = 30
 
-    def __init__(self, ann, dataset, parent=None):
+    def __init__(self, ann, dataset, tr_full=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
             f"Spectral Analysis  —  Event: [{ann.id}]  "
@@ -369,6 +423,8 @@ class SpectralDialog(QtWidgets.QDialog):
 
         self.ann = ann
         self.dataset = dataset
+        self._dataset_filtered = dataset
+        self._dataset_full = tr_full if tr_full is not None else dataset
 
         # Use physical coordinates to find local array indices.
         # ann.di0/di1 are absolute cable indices (include channel_offset)
@@ -409,26 +465,35 @@ class SpectralDialog(QtWidgets.QDialog):
         self.sb_nfft = _make_spinbox(2048, 16, 65536, 256)
         self.combo_win = QtWidgets.QComboBox()
         self.combo_win.addItems(['hann', 'hamming', 'blackman', 'bartlett', 'none'])
-        self.combo_win.setMinimumWidth(100) # self.combo_win.setFixedWidth(100)
+        self.combo_win.setMinimumWidth(100)
         self.sb_fmax = _make_spinbox(
             self.dataset.fs_hz / 2, 1, self.dataset.fs_hz / 2, 1)
         self.combo_scale = QtWidgets.QComboBox()
         self.combo_scale.addItems(['Log', 'Linear'])   # Log first = default
-        self.combo_scale.setMinimumWidth(96) # self.combo_scale.setFixedWidth(96)
+        self.combo_scale.setMinimumWidth(96)
+        self.sb_ymin = _make_spinbox(0, -1e6, 1e6, 10, decimals=1)
+        self.sb_ymax = _make_spinbox(0, -1e6, 1e6, 10, decimals=1)
+        self._yrange_initialised = False
+        self.combo_scale.currentIndexChanged.connect(self._on_scale_changed)
         btn_apply = QtWidgets.QPushButton("Apply")
-        btn_apply.setMinimumWidth(105) # btn_apply.setFixedWidth(105)
+        btn_apply.setMinimumWidth(105)
         btn_apply.clicked.connect(self._plot)
 
         btn_export = QtWidgets.QPushButton("Export")
-        btn_export.setMinimumWidth(90) # btn_export.setFixedWidth(90)
+        btn_export.setMinimumWidth(90)
         btn_export.clicked.connect(self._export_png)
+
+        self.btn_filter = _make_filter_toggle(self._on_filter_toggled_sp)
 
         param_row = _param_row(
             ("NFFT:", self.sb_nfft),
             ("Window:", self.combo_win),
             ("Fmax [Hz]:", self.sb_fmax),
             ("Y-scale:", self.combo_scale),
+            ("yMin:", self.sb_ymin),
+            ("yMax:", self.sb_ymax),
         )
+        param_row.addWidget(self.btn_filter)
         param_row.addWidget(btn_apply)
         param_row.addWidget(btn_export)
         layout.addLayout(param_row)
@@ -437,6 +502,17 @@ class SpectralDialog(QtWidgets.QDialog):
         self.plot_widget.setLabel("bottom", "Frequency [Hz]")
         self.plot_widget.setLabel("left", "Magnitude [a.u.]")
         layout.addWidget(self.plot_widget, 1)
+
+    def _on_filter_toggled_sp(self, checked: bool) -> None:
+        self.btn_filter.setText("Filter ON" if checked else "Filter OFF")
+        self.dataset = self._dataset_filtered if checked else self._dataset_full
+        self._yrange_initialised = False
+        self._plot()
+
+    def _on_scale_changed(self) -> None:
+        """Reset yMin/yMax when Y-scale changes so autorange runs again."""
+        self._yrange_initialised = False
+        self._plot()
 
     def _plot(self):
         ds = self.dataset
@@ -474,6 +550,25 @@ class SpectralDialog(QtWidgets.QDialog):
             self.plot_widget.setLogMode(y=True)
         else:
             self.plot_widget.setLogMode(y=False)
+
+        # yMin/yMax — on first call, read auto range from plot and populate spinboxes
+        if not self._yrange_initialised and spectra:
+            self.plot_widget.autoRange()
+            vr = self.plot_widget.viewRange()
+            auto_ymin = round(vr[1][0], 1)
+            auto_ymax = round(vr[1][1], 1)
+            self.sb_ymin.blockSignals(True)
+            self.sb_ymax.blockSignals(True)
+            self.sb_ymin.setValue(auto_ymin)
+            self.sb_ymax.setValue(auto_ymax)
+            self.sb_ymin.blockSignals(False)
+            self.sb_ymax.blockSignals(False)
+            self._yrange_initialised = True
+        else:
+            ymin = self.sb_ymin.value()
+            ymax = self.sb_ymax.value()
+            if ymin < ymax:
+                self.plot_widget.setYRange(ymin, ymax, padding=0)
 
     def _export_png(self) -> None:
         """Export the plot as a high-quality PNG at 300 DPI."""
@@ -633,6 +728,8 @@ class SignalDialog(QtWidgets.QDialog):
         btn_export = QtWidgets.QPushButton("Export")
         btn_export.setMinimumWidth(90)
         btn_export.clicked.connect(self._export_png)
+
+
         ctrl_row.addWidget(btn_apply)
         ctrl_row.addWidget(btn_export)
 
@@ -668,6 +765,12 @@ class SignalDialog(QtWidgets.QDialog):
         plot_row.addWidget(self.plot_widget, 1)
         plot_row.addLayout(scroll_col)
         layout.addLayout(plot_row, 1)
+
+
+
+
+
+
 
     def _plot(self, ch: int):
         self._cur_ch = ch
@@ -800,7 +903,7 @@ class SignalFreqDialog(QtWidgets.QDialog):
     Adds FFT-specific controls: window function and magnitude scale (dB/linear).
     """
 
-    def __init__(self, ann, dataset, parent=None):
+    def __init__(self, ann, dataset, tr_full=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
             f"Signal (frequency domain) - Event [{ann.id}]  "
@@ -816,6 +919,8 @@ class SignalFreqDialog(QtWidgets.QDialog):
 
         self.ann     = ann
         self.dataset = dataset
+        self._dataset_filtered = dataset
+        self._dataset_full = tr_full if tr_full is not None else dataset
 
         n_tr = dataset.tr.shape[0]
         dist_local = dataset.dist_m[:n_tr]
@@ -913,6 +1018,8 @@ class SignalFreqDialog(QtWidgets.QDialog):
         btn_export = QtWidgets.QPushButton("Export")
         btn_export.setMinimumWidth(90)
         btn_export.clicked.connect(self._export_png)
+        self.btn_filter = _make_filter_toggle(self._on_filter_toggled)
+        ctrl_row.addWidget(self.btn_filter)
         ctrl_row.addWidget(btn_apply)
         ctrl_row.addWidget(btn_export)
 
@@ -966,6 +1073,12 @@ class SignalFreqDialog(QtWidgets.QDialog):
             mag = 20.0 * np.log10(np.maximum(mag, 1e-12))
 
         return freqs, mag
+
+
+    def _on_filter_toggled(self, checked: bool) -> None:
+        self.btn_filter.setText("Filter ON" if checked else "Filter OFF")
+        self.dataset = self._dataset_filtered if checked else self._dataset_full
+        self._plot(self._cur_ch)
 
     def _plot(self, ch: int):
         self._cur_ch = ch
@@ -1090,7 +1203,7 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
     Same navigation/fix-channel pattern as SignalDialog.
     """
 
-    def __init__(self, ann, dataset, parent=None):
+    def __init__(self, ann, dataset, tr_full=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
             f"Signal (envelope) - Event [{ann.id}]  "
@@ -1179,6 +1292,8 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         btn_export = QtWidgets.QPushButton("Export")
         btn_export.setMinimumWidth(90)
         btn_export.clicked.connect(self._export_png)
+
+
         ctrl_row.addWidget(btn_apply)
         ctrl_row.addWidget(btn_export)
 
@@ -1216,6 +1331,12 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         from dasexplorer.core.processing import hilbert_envelope
         sig = self.dataset.tr[ch:ch+1, :].astype(np.float32)
         return hilbert_envelope(sig).ravel()
+
+
+
+
+
+
 
     def _plot(self, ch: int):
         self._cur_ch = ch
@@ -1323,7 +1444,7 @@ class SignalPhaseDialog(QtWidgets.QDialog):
     Same navigation/fix-channel pattern as SignalDialog.
     """
 
-    def __init__(self, ann, dataset, parent=None):
+    def __init__(self, ann, dataset, tr_full=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
             f"Signal (phase) - Event [{ann.id}]  "
@@ -1412,6 +1533,8 @@ class SignalPhaseDialog(QtWidgets.QDialog):
         btn_export = QtWidgets.QPushButton("Export")
         btn_export.setMinimumWidth(90)
         btn_export.clicked.connect(self._export_png)
+
+
         ctrl_row.addWidget(btn_apply)
         ctrl_row.addWidget(btn_export)
 
@@ -1449,6 +1572,12 @@ class SignalPhaseDialog(QtWidgets.QDialog):
         import scipy.signal as sp
         sig = self.dataset.tr[ch, :].astype(np.float64)
         return np.unwrap(np.angle(sp.hilbert(sig)))
+
+
+
+
+
+
 
     def _plot(self, ch: int):
         self._cur_ch = ch

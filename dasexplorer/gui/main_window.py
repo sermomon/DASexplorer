@@ -1764,17 +1764,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _analysis_dataset(self):
         """
-        Return a DASDataset whose .tr is the array currently shown in the
-        Raw waterfall (bandpass-filtered, WITHOUT Hilbert envelope) — this
-        is what Spectrogram / Spectral Analysis / Signal tools must use,
-        regardless of whether the Envelope checkbox is active.
-        Falls back to self.dataset.tr (raw) if nothing has been filtered yet.
+        Return a DASDataset whose .tr is the bandpass-filtered array
+        (fmin/fmax from the panel, no Hilbert envelope).
         """
         import dataclasses
         if self.dataset is None:
             return None
-        # Recompute bandpass WITHOUT envelope so analysis tools see the
-        # filtered signal, never its Hilbert envelope.
         fmin = self.spin_fmin.value()
         fmax = self.spin_fmax.value()
         nyq  = self.dataset.fs_hz / 2.0
@@ -1784,12 +1779,30 @@ class MainWindow(QtWidgets.QMainWindow):
             tr_filt = self.dataset.tr
         return dataclasses.replace(self.dataset, tr=tr_filt)
 
+    def _analysis_dataset_full(self):
+        """
+        Return a DASDataset whose .tr is filtered from ~0 to Nyquist
+        (eliminates DC only, conserves all useful spectral content).
+        Used as the Filter OFF array in analysis dialogs.
+        """
+        import dataclasses
+        from dasexplorer.core.processing import bandpass_filter
+        if self.dataset is None:
+            return None
+        nyq   = self.dataset.fs_hz / 2.0
+        fmin  = 0.001
+        fmax  = nyq * 0.999
+        tr_full = bandpass_filter(self.dataset.tr, self.dataset.fs_hz, fmin, fmax)
+        return dataclasses.replace(self.dataset, tr=tr_full)
+
     def _on_show_spectrogram(self, index: int) -> None:
         ann = self._get_analysis_ann(index)
         if ann is None:
             return
         dlg = SpectrogramDialog(ann, self._analysis_dataset(),
-                                self._current_colormap(), parent=self)
+                                self._current_colormap(),
+                                tr_full=self._analysis_dataset_full(),
+                                parent=self)
         dlg.show()
 
     def _on_show_spectral(self, index: int) -> None:
@@ -1797,7 +1810,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if ann is None:
             return
         try:
-            dlg = SpectralDialog(ann, self._analysis_dataset(), parent=self)
+            dlg = SpectralDialog(ann, self._analysis_dataset(),
+                          tr_full=self._analysis_dataset_full(),
+                          parent=self)
             dlg.show()
         except Exception as exc:
             self._status_error(f"Spectral Analysis error: {exc}")
@@ -1813,7 +1828,9 @@ class MainWindow(QtWidgets.QMainWindow):
         ann = self._get_analysis_ann(index)
         if ann is None:
             return
-        dlg = SignalFreqDialog(ann, self._analysis_dataset(), parent=self)
+        dlg = SignalFreqDialog(ann, self._analysis_dataset(),
+                             tr_full=self._analysis_dataset_full(),
+                             parent=self)
         dlg.show()
 
     def _on_show_signal_env(self, index: int) -> None:
