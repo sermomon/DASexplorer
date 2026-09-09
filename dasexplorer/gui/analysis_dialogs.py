@@ -133,8 +133,8 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self.sb_nfft = _make_spinbox(1024, 16, 8192, 16)
         self.sb_fmax = _make_spinbox(
             self.dataset.fs_hz / 2, 1, self.dataset.fs_hz / 2, 1)
-        self.sb_zoom = _make_spinbox(4,    1,   16,  1)
-        self.sb_zoom.setToolTip(
+        self.sb_smooth = _make_spinbox(4,    1,   16,  1)
+        self.sb_smooth.setToolTip(
             "Bilinear upsampling factor applied to both axes before display.\n"
             "Higher = smoother appearance, slower rendering.")
         self.sb_vmin = QtWidgets.QDoubleSpinBox()
@@ -157,7 +157,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
             ("Overlap %:", self.sb_overlap),
             ("NFFT:", self.sb_nfft),
             ("Fmax [Hz]:", self.sb_fmax),
-            ("Zoom:", self.sb_zoom),
+            ("Smooth:", self.sb_smooth),
             ("vMin:", self.sb_vmin),
             ("vMax:", self.sb_vmax),
         )
@@ -248,7 +248,7 @@ class SpectrogramDialog(QtWidgets.QDialog):
             vmax = self.sb_vmax.value()
 
         # Bilinear upsampling — factor controlled by user (default 4)
-        z = self.sb_zoom.value()
+        z = self.sb_smooth.value()
         Sxx_render = ndimage_zoom(Sxx_show, (z, z), order=1).astype(np.float32)
         n_freq_r, n_time_r = Sxx_render.shape
 
