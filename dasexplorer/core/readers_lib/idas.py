@@ -9,7 +9,7 @@ import re
 import datetime
 from typing import Optional
 import numpy as np
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 
 
 def read_idas_v1(
@@ -18,7 +18,7 @@ def read_idas_v1(
     read_dmin_m: Optional[float] = None,
     read_dmax_m: Optional[float] = None,
     **kwargs,
-) -> DASDataset:
+) -> _DASRecord:
 
     ######################################################################
     ### SILIXA iDAS - (.tdms) OOI RCA 2021
@@ -46,7 +46,7 @@ def read_idas_v1(
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     from nptdms import TdmsFile
 
@@ -103,7 +103,7 @@ def read_idas_v1(
         tr     = tr[mask, :]
         dist_m = dist_m[mask]
 
-    return DASDataset(
+    return _DASRecord(
         tr=tr,
         dist_m=dist_m,
         time_s=time_s,

@@ -2,7 +2,6 @@ from dasexplorer.version import __version__
 
 # ── Public API ────────────────────────────────────────────────────────────────
 from dasexplorer.api import DASdataset, DASannotations
-from dasexplorer.core.data_model import DASDataset
 from dasexplorer.core.processing import (
     bandpass_filter, hilbert_envelope,
     downsample_signal, upsample_signal,
@@ -21,8 +20,6 @@ __all__ = [
     # High-level API
     "DASdataset",
     "DASannotations",
-    # Internal dataclass
-    "DASDataset",
     # Processing
     "bandpass_filter",
     "hilbert_envelope",

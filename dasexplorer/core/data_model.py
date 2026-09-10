@@ -1,7 +1,7 @@
 """
 Core data model for DAS Explorer.
 
-Defines the DASDataset container used throughout the application to
+Defines the _DASRecord container used throughout the application to
 represent a single loaded DAS acquisition: the strain/acoustic matrix
 plus its spatial/temporal axes and metadata.
 """
@@ -11,9 +11,10 @@ from typing import Optional
 import datetime
 import numpy as np
 
+# TODO: Change _DASRecord to DasRecord (private class) and add new key class attributes.
 
 @dataclass
-class DASDataset:
+class _DASRecord:
     """
     Container for a DAS dataset.
 
@@ -73,3 +74,8 @@ class DASDataset:
     @property
     def n_time(self) -> int:
         return self.tr.shape[1]
+
+
+# Backward-compatibility alias for GUI internal code.
+# Never use in public API — use DASdataset from dasexplorer.api instead.
+DASDataset = _DASRecord

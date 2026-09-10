@@ -9,7 +9,7 @@ import re
 import datetime
 from typing import Optional
 import numpy as np
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 from dasexplorer.core.readers_lib import _ensure_tools_importable
 
 
@@ -21,7 +21,7 @@ def read_hdas25_v1(
     read_dmin_m: Optional[float] = None,
     read_dmax_m: Optional[float] = None,
     **kwargs,
-) -> DASDataset:
+) -> _DASRecord:
     
     ######################################################################
     ### HDAS 2.5 / ARAGON PHOTONICS LAB. - (.bin) UPV + APL EXPERIMENT 
@@ -46,7 +46,7 @@ def read_hdas25_v1(
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     _ensure_tools_importable()
     num_files: int = kwargs.get("num_files", 1)
@@ -88,7 +88,7 @@ def read_hdas25_v1(
         tr     = tr[mask, :]
         dist_m = dist_m[mask]
 
-    return DASDataset(
+    return _DASRecord(
         tr=tr,
         dist_m=dist_m,
         time_s=time_s,

@@ -15,7 +15,7 @@ import re
 import datetime
 from typing import Optional
 import numpy as np
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 import scipy.io as sio
 
 
@@ -25,7 +25,7 @@ def read_svalbard_v1(
     read_dmin_m: Optional[float] = None,
     read_dmax_m: Optional[float] = None,
     **kwargs,
-) -> DASDataset:
+) -> _DASRecord:
 
     ######################################################################
     ### OPTODAS ASN/ ALCATEL SUBMARINE NETWORK - (.mat) SVALBARD-2020
@@ -53,7 +53,7 @@ def read_svalbard_v1(
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     import scipy.io as sio
 
@@ -117,7 +117,7 @@ def read_svalbard_v1(
         tr     = tr[mask, :]
         dist_m = dist_m[mask]
 
-    return DASDataset(
+    return _DASRecord(
         tr=tr,
         dist_m=dist_m,
         time_s=time_s,
@@ -137,7 +137,7 @@ def read_svalbard_v1(
 #%% RE-IMPORT READERS ------------------------------------------------------------------------------------------
 
 
-# def read_npz(path: str) -> DASDataset:
+# def read_npz(path: str) -> _DASRecord:
 #     """
 #     Read a DAS dataset previously exported via File > Save as NPZ.
 
@@ -153,7 +153,7 @@ def read_svalbard_v1(
 
 #     Returns
 #     -------
-#     DASDataset
+#     _DASRecord
 #     """
 #     import json
 
@@ -183,7 +183,7 @@ def read_svalbard_v1(
 #             except (ValueError, TypeError):
 #                 metadata = {}
 
-#     return DASDataset(
+#     return _DASRecord(
 #         tr=tr.astype(np.float32),
 #         dist_m=dist_m.astype(np.float64),
 #         time_s=time_s.astype(np.float64),
@@ -214,7 +214,7 @@ def read_svalbard_v1(
 #     return str(arr.reshape(-1)[0])
 
 
-# def read_mat(path: str) -> DASDataset:
+# def read_mat(path: str) -> _DASRecord:
 #     """
 #     Read a DAS dataset previously exported via File > Save as MAT.
 
@@ -229,7 +229,7 @@ def read_svalbard_v1(
 
 #     Returns
 #     -------
-#     DASDataset
+#     _DASRecord
 #     """
 #     import json
 #     import scipy.io as sio
@@ -262,7 +262,7 @@ def read_svalbard_v1(
 #         except (ValueError, TypeError):
 #             metadata = {}
 
-#     return DASDataset(
+#     return _DASRecord(
 #         tr=tr.astype(np.float32),
 #         dist_m=dist_m.astype(np.float64),
 #         time_s=time_s.astype(np.float64),

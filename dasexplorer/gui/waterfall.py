@@ -7,7 +7,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import DASDataset  # _DASRecord alias
 from dasexplorer.core.annotations_model import AnnType
 from dasexplorer.gui import theme
 

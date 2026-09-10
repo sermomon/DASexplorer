@@ -15,7 +15,7 @@ from typing import Optional
 import h5py
 import numpy as np
 
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 
 
 def read_optasense_v1(
@@ -24,7 +24,7 @@ def read_optasense_v1(
     read_dmin_m: Optional[float] = None,
     read_dmax_m: Optional[float] = None,
     **kwargs,
-) -> DASDataset:
+) -> _DASRecord:
     """Read a DAS acquisition from a Luna Innovations OptaSense interrogator (.h5).
 
     Replicates the das4whales data_handle.get_metadata_optasense and
@@ -50,7 +50,7 @@ def read_optasense_v1(
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
@@ -122,7 +122,7 @@ def read_optasense_v1(
     # channel_offset: index of the first loaded channel in the full cable (stride=1)
     channel_offset = ch_start
 
-    return DASDataset(
+    return _DASRecord(
         tr=tr,
         dist_m=dist_m,
         time_s=time_s,

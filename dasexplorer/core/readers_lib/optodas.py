@@ -11,7 +11,7 @@ import re
 import datetime
 from typing import Optional
 import numpy as np
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 
 
 def read_optodas_v1(
@@ -20,7 +20,7 @@ def read_optodas_v1(
     read_dmin_m: Optional[float] = None,
     read_dmax_m: Optional[float] = None,
     **kwargs,
-) -> DASDataset:
+) -> _DASRecord:
 
     ######################################################################
     ### OPTODAS / ASN - (.hdf5) OOI-RCA 2024 muxDAS / fsic042
@@ -50,7 +50,7 @@ def read_optodas_v1(
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     import h5py
 
@@ -106,7 +106,7 @@ def read_optodas_v1(
         tr = tr[mask, :]
         dist_m = dist_m[mask]
 
-    return DASDataset(
+    return _DASRecord(
         tr=tr,
         dist_m=dist_m,
         time_s=time_s,
@@ -133,7 +133,7 @@ def read_optodas_v2(
     read_dmin_m: Optional[float] = None,
     read_dmax_m: Optional[float] = None,
     **kwargs,
-) -> DASDataset:
+) -> _DASRecord:
     
     ######################################################################
     ### OPTODAS - ASN/ ALCATEL SUBMARINE NETWORK (.hdf5) OOI RCA 2025 (preliminary)
@@ -170,7 +170,7 @@ def read_optodas_v2(
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     import h5py
 
@@ -230,7 +230,7 @@ def read_optodas_v2(
         tr = tr[mask, :]
         dist_m = dist_m[mask]
 
-    return DASDataset(
+    return _DASRecord(
         tr=tr,
         dist_m=dist_m,
         time_s=time_s,

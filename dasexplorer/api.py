@@ -1,7 +1,7 @@
 """
 core/data.py — High-level DASdataset class with processing methods.
 
-DASdataset inherits from DASDataset (the internal dataclass) and adds:
+DASdataset inherits from _DASRecord (the internal dataclass) and adds:
   - Convenience properties: dx, dt, duration_s, cable_length_m, nyquist_hz
   - Processing methods: bandpass, envelope, fk_filter, rgb
   - Export methods: save_npz, save_mat
@@ -16,21 +16,25 @@ from typing import Optional, Tuple
 import numpy as np
 import scipy.io as sio
 
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 from dasexplorer.core.processing import bandpass_filter, hilbert_envelope
 
 
-class DASdataset(DASDataset):
-    """High-level DAS dataset with built-in processing and export methods.
+class DASdataset(_DASRecord):
+    """PUBLIC API — High-level DAS dataset with built-in processing and export methods.
 
-    Inherits all fields from DASDataset and adds convenience properties
+    This is the class users should interact with. The internal dataclass
+    ``_DASRecord`` (in ``core/data_model.py``) should never be used directly
+    in user code or the public API.
+
+    Inherits all fields from _DASRecord and adds convenience properties
     and methods for signal processing, spectral analysis, and data export.
     All processing methods return a **new** DASdataset instance, leaving
     the original unchanged.
 
     Parameters
     ----------
-    Same as DASDataset — see dasexplorer.core.data_model.DASDataset.
+    Same as _DASRecord — see dasexplorer.core.data_model._DASRecord.
 
     Examples
     --------
@@ -425,12 +429,12 @@ class DASdataset(DASDataset):
         return cls.from_dataset(ds)
 
     @classmethod
-    def from_dataset(cls, ds: DASDataset) -> "DASdataset":
-        """Convert an existing DASDataset dataclass to a DASdataset instance.
+    def from_dataset(cls, ds: _DASRecord) -> "DASdataset":
+        """Convert an existing _DASRecord dataclass to a DASdataset instance.
 
         Parameters
         ----------
-        ds : DASDataset
+        ds : _DASRecord
             Source dataclass instance.
 
         Returns
@@ -585,8 +589,9 @@ class DASannotations:
         """
         from dasexplorer.core.annotations_model import AnnType, ANN_SUFFIX
         obj = cls()
+        import os as _os
         for ann_type, suffix in ANN_SUFFIX.items():
-            if path.endswith(f"{suffix}.csv"):
+            if _os.path.basename(path).endswith(suffix):
                 obj._models[ann_type].load(path)
                 return obj
         raise ValueError(

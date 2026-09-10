@@ -13,10 +13,10 @@ import datetime
 from typing import Optional
 import numpy as np
 
-#from .data_model import DASDataset
-from dasexplorer.core.data_model import DASDataset
+#from .data_model import _DASRecord
+from dasexplorer.core.data_model import _DASRecord
 
-def read_npz(path: str) -> DASDataset:
+def read_npz(path: str) -> "DASdataset":
     """
     Read a DAS dataset previously exported via File > Save as NPZ.
 
@@ -32,7 +32,7 @@ def read_npz(path: str) -> DASDataset:
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     import json
 
@@ -63,7 +63,8 @@ def read_npz(path: str) -> DASDataset:
             except (ValueError, TypeError):
                 metadata = {}
 
-    return DASDataset(
+    from dasexplorer.api import DASdataset as _DS
+    return _DS.from_dataset(_DASRecord(
         tr=tr.astype(np.float32),
         dist_m=dist_m.astype(np.float64),
         time_s=time_s.astype(np.float64),
@@ -74,7 +75,7 @@ def read_npz(path: str) -> DASDataset:
         channel_stride=downsample,
         metadata=metadata,
         units=units or None,
-    )
+    ))
 
 
 def _mat_scalar(value):
@@ -94,7 +95,7 @@ def _mat_text(value) -> str:
     return str(arr.reshape(-1)[0])
 
 
-def read_mat(path: str) -> DASDataset:
+def read_mat(path: str) -> "DASdataset":
     """
     Read a DAS dataset previously exported via File > Save as MAT.
 
@@ -109,7 +110,7 @@ def read_mat(path: str) -> DASDataset:
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     import json
     import scipy.io as sio
@@ -143,7 +144,8 @@ def read_mat(path: str) -> DASDataset:
         except (ValueError, TypeError):
             metadata = {}
 
-    return DASDataset(
+    from dasexplorer.api import DASdataset as _DS
+    return _DS.from_dataset(_DASRecord(
         tr=tr.astype(np.float32),
         dist_m=dist_m.astype(np.float64),
         time_s=time_s.astype(np.float64),
@@ -154,4 +156,4 @@ def read_mat(path: str) -> DASDataset:
         channel_stride=downsample,
         metadata=metadata,
         units=units or None,
-    )
+    ))

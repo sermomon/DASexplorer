@@ -9,7 +9,7 @@ import re
 import datetime
 from typing import Optional
 import numpy as np
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord as DASDataset
 from dasexplorer.core.readers_lib import _ensure_tools_importable
 
 
@@ -102,7 +102,7 @@ def read_optasense_v1(
         start_datetime_utc=file_start_datetime,
         filename=os.path.basename(path),
         reader="optasense",
-        downsample=downsample,
+        channel_stride=downsample,
         channel_offset=channel_offset,
         metadata={
             "gauge_length_m":      metadata.get("GL"),

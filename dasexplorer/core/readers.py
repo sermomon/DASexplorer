@@ -10,7 +10,7 @@ To add a new reader:
   3. Create a matching profile in cfg/config.json
 """
 
-from dasexplorer.core.data_model import DASDataset
+from dasexplorer.core.data_model import _DASRecord
 from dasexplorer.core.readers_lib.hdas      import read_hdas25_v1
 from dasexplorer.core.readers_lib.optasense import read_optasense_v1
 from dasexplorer.core.readers_lib.idas      import read_idas_v1
@@ -60,7 +60,7 @@ def generate_synthetic_dataset(
     n_time: int = 3000,
     fs_hz: float = 50.0,
     dx_m: float = 10.0,
-) -> DASDataset:
+) -> "DASdataset":
     """Generate a synthetic DAS dataset for testing the UI without real data."""
     import numpy as np
     rng = np.random.default_rng(42)
@@ -71,16 +71,17 @@ def generate_synthetic_dataset(
         np.sin(2 * np.pi * f * time_s) + 0.1 * rng.standard_normal(n_time)
         for f in freqs
     ], dtype=np.float32)
-    return DASDataset(
+    from dasexplorer.api import DASdataset as _DS
+    return _DS.from_dataset(_DASRecord(
         tr=tr, dist_m=dist_m, time_s=time_s, fs_hz=fs_hz,
         filename="synthetic.bin", reader="synthetic", units="DC",
         metadata={"dx_m": dx_m},
-    )
+    ))
 
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
 
-def read_das_file(path: str, reader: str, **kwargs) -> DASDataset:
+def read_das_file(path: str, reader: str, **kwargs) -> _DASRecord:
     """
     Dispatch to the appropriate reader function.
 
@@ -95,11 +96,15 @@ def read_das_file(path: str, reader: str, **kwargs) -> DASDataset:
 
     Returns
     -------
-    DASDataset
+    _DASRecord
     """
     if reader not in READERS:
         raise ValueError(
             f"Unknown reader '{reader}'. "
             f"Available: {list(READERS)}"
         )
-    return READERS[reader](path, **kwargs)
+    from dasexplorer.api import DASdataset as _DS
+    raw = READERS[reader](path, **kwargs)
+    if isinstance(raw, _DS):
+        return raw
+    return _DS.from_dataset(raw)

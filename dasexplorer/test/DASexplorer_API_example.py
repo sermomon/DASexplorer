@@ -1,8 +1,19 @@
 # dasexplorer_api_example.py
 #
 # Comprehensive example of the DASexplorer Python API.
-# Covers: reading files, synthetic data, signal processing,
-# F-K filtering, RGB, annotations, and data export.
+#
+# PUBLIC API — use these:
+#   from dasexplorer.api import DASdataset, DASannotations
+#   from dasexplorer.core.processing import bandpass_filter, hilbert_envelope,
+#       detrend, taper, normalize, downsample_signal, upsample_signal
+#   from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
+#   from dasexplorer.core.rgb import compute_rgb_composite
+#   from dasexplorer.core.readers import read_das_file, generate_synthetic_dataset
+#   from dasexplorer.core.io_formats import read_npz, read_mat
+#
+# PRIVATE — do NOT use directly:
+#   dasexplorer.core.data_model._DASRecord  (internal dataclass)
+#   dasexplorer.core.data_model.DASDataset  (alias for _DASRecord, GUI only)
 #
 # Run with:
 #   python dasexplorer_api_example.py
@@ -27,10 +38,15 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 import dasexplorer
 from dasexplorer.api import DASdataset, DASannotations
-from dasexplorer.core.processing import bandpass_filter, hilbert_envelope
+from dasexplorer.core.processing import (
+    bandpass_filter, hilbert_envelope,
+    detrend, taper, normalize,
+    downsample_signal, upsample_signal,
+)
 from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
 from dasexplorer.core.rgb import compute_rgb_composite
 from dasexplorer.core.readers import read_das_file, generate_synthetic_dataset
+from dasexplorer.core.io_formats import read_npz, read_mat
 
 print(f"DASexplorer {dasexplorer.__version__}")
 
@@ -40,7 +56,8 @@ print(f"DASexplorer {dasexplorer.__version__}")
 
 if DATA_FILE is not None:
     print(f"\nReading {DATA_FILE} ...")
-    ds = DASdataset.from_file(
+    # read_das_file returns a DASdataset directly
+    ds = read_das_file(
         DATA_FILE,
         reader=READER_KEY,
         stride=2,
@@ -49,46 +66,52 @@ if DATA_FILE is not None:
     )
 else:
     print("\nGenerating synthetic dataset ...")
-    ds = DASdataset.from_dataset(
-        generate_synthetic_dataset(n_dist=500, n_time=3000, fs_hz=200.0, dx_m=10.0)
-    )
+    # generate_synthetic_dataset also returns a DASdataset directly
+    ds = generate_synthetic_dataset(n_dist=500, n_time=3000, fs_hz=200.0, dx_m=10.0)
 
 print(ds)
+print(f"  shape       = {ds.tr.shape}  (n_channels x n_time)")
 print(f"  dx          = {ds.dx} m")
 print(f"  dt          = {ds.dt:.5f} s")
 print(f"  nyquist     = {ds.nyquist_hz} Hz")
 print(f"  duration    = {ds.duration_s:.2f} s")
 print(f"  cable       = {ds.cable_length_m:.0f} m")
+print(f"  channel_stride = {ds.channel_stride}")
+print(f"  downsample     = {ds.downsample}")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. CREATE A DASdataset FROM SCRATCH
+#    Use DASdataset directly — do NOT use _DASRecord or DASDataset
 # ─────────────────────────────────────────────────────────────────────────────
 
 print("\nCreating DASdataset from scratch ...")
 n_ch, n_t = 200, 1000
-fs_hz, dx_m = 100.0, 5.0
+fs_hz_syn, dx_m_syn = 100.0, 5.0
 
-tr = np.random.randn(n_ch, n_t).astype(np.float32)
-t  = np.arange(n_t) / fs_hz
-k0 = 20.0 / 1500.0
+tr_syn = np.random.randn(n_ch, n_t).astype(np.float32)
+t_syn  = np.arange(n_t) / fs_hz_syn
+k0     = 20.0 / 1500.0
 for i in range(n_ch):
-    tr[i] += 0.3 * np.sin(2 * np.pi * 20.0 * t - 2 * np.pi * k0 * i * dx_m)
+    tr_syn[i] += 0.3 * np.sin(2 * np.pi * 20.0 * t_syn - 2 * np.pi * k0 * i * dx_m_syn)
 
-from dasexplorer.core.data_model import DASDataset
-custom_ds = DASdataset.from_dataset(DASDataset(
-    tr=tr,
-    dist_m=np.arange(n_ch) * dx_m,
-    time_s=np.arange(n_t) / fs_hz,
-    fs_hz=fs_hz,
+# Correct way: pass all fields to _DASRecord via DASdataset — no need to
+# import _DASRecord. Use DASdataset directly with the dataclass fields.
+custom_ds = DASdataset(
+    tr=tr_syn,
+    dist_m=np.arange(n_ch) * dx_m_syn,
+    time_s=t_syn,
+    fs_hz=fs_hz_syn,
     start_datetime_utc=datetime(2024, 6, 15, 12, 0, 0),
     filename="synthetic_finwhale.npy",
     reader="custom",
+    channel_stride=None,
     downsample=None,
     channel_offset=0,
     metadata={"description": "Synthetic fin whale 20 Hz call at 1500 m/s"},
     units="nanostrain",
-))
+)
 print(custom_ds)
+print(f"  dx={custom_ds.dx}m  nyquist={custom_ds.nyquist_hz}Hz")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. PROCESSING — STANDALONE FUNCTIONS
@@ -96,9 +119,12 @@ print(custom_ds)
 
 print("\nProcessing with standalone functions ...")
 
-tr_bp  = bandpass_filter(ds.tr, ds.fs_hz, fmin=10.0, fmax=30.0)
+tr_dt  = detrend(ds.tr, mode='linear')          # remove linear trend
+tr_tap = taper(tr_dt, alpha=0.05, mode='tukey') # taper edges
+tr_nm  = normalize(tr_tap, mode='rms')           # normalize by RMS
+tr_bp  = bandpass_filter(tr_nm, ds.fs_hz, fmin=10.0, fmax=30.0)
 tr_env = hilbert_envelope(tr_bp)
-fk     = fk_filter_design(ds.tr.shape, dx=ds.dx, fs=ds.fs_hz,
+fk     = fk_filter_design(tr_bp.shape, dx=ds.dx, fs=ds.fs_hz,
                            c_min=1400.0, c_max=3500.0, fmin=10.0, fmax=30.0)
 tr_fk  = fk_filter_apply(tr_bp, fk, tapering=False)
 rgb    = compute_rgb_composite(ds.tr, ds.fs_hz,
@@ -107,27 +133,48 @@ rgb    = compute_rgb_composite(ds.tr, ds.fs_hz,
                                 b_band=(15.0, 40.0),
                                 percentile=90.0)
 
+print(f"  detrend:    {tr_dt.shape}  {tr_dt.dtype}")
+print(f"  taper:      {tr_tap.shape}  {tr_tap.dtype}")
+print(f"  normalize:  {tr_nm.shape}  {tr_nm.dtype}")
 print(f"  bandpass:   {tr_bp.shape}  {tr_bp.dtype}")
 print(f"  envelope:   {tr_env.shape}  {tr_env.dtype}")
 print(f"  fk:         {tr_fk.shape}  {tr_fk.dtype}")
 print(f"  rgb:        {rgb.shape}  {rgb.dtype}")
 
+# downsample / upsample standalone
+tr_d, fs_d, q = downsample_signal(ds.tr, ds.fs_hz, factor=4, mode='decimate')
+tr_u, fs_u, _ = upsample_signal(tr_d, fs_d, fs_target=ds.fs_hz, mode='fft')
+print(f"  downsample: {tr_d.shape}  fs={fs_d}Hz (factor={q})")
+print(f"  upsample:   {tr_u.shape}  fs={fs_u}Hz")
+
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. PROCESSING — METHOD CHAINING
+# 5. PROCESSING — METHOD CHAINING (recommended)
 # ─────────────────────────────────────────────────────────────────────────────
 
 print("\nProcessing with DASdataset method chaining ...")
 
 result = (
     ds
+    .detrend(mode='linear')
+    .taper(alpha=0.05, mode='tukey')
     .bandpass(10, 30)
+    .normalize(mode='rms')
     .fk_filter(1400, 3500, fmin=10, fmax=30)
     .envelope()
 )
 print(result)
+print(f"  processing history: {result.metadata['processing']}")
 
+# Downsample + upsample via methods
+ds_50  = ds.downsample_time(fs_target=50.0)          # decimate to 50 Hz
+ds_50s = ds.downsample_time(factor=4, mode='simple') # simple (no anti-aliasing)
+ds_200 = ds_50.upsample_time(fs_target=ds.fs_hz, mode='fft')
+print(f"  downsample(50Hz):  fs={ds_50.fs_hz}Hz  n={ds_50.n_time}  downsample={ds_50.downsample}")
+print(f"  upsample(200Hz):   fs={ds_200.fs_hz}Hz  n={ds_200.n_time}")
+
+# RGB from method
 rgb2 = ds.rgb(r_band=(1, 5), g_band=(5, 15), b_band=(15, 40), percentile=90)
-print(f"  rgb shape:  {rgb2.shape}")
+print(f"  rgb shape: {rgb2.shape}")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. ANNOTATIONS
@@ -146,14 +193,21 @@ print(ann)
 
 for bbox in ann.bbox:
     print(f"  [{bbox.id}]  t={bbox.t0:.1f}-{bbox.t1:.1f}s  "
-          f"d={bbox.d0:.0f}-{bbox.d1:.0f}m  comment={bbox.comment}")
+          f"d={bbox.d0:.0f}-{bbox.d1:.0f}m  "
+          f"ti={bbox.ti0}-{bbox.ti1}  di={bbox.di0}-{bbox.di1}")
 
+# Filter annotations
 fw_late = ann.filter(id="FW", t_min=25.0)
-print(f"  filter(t_min=25s): {fw_late}")
+print(f"  filter(id=FW, t_min=25s): {fw_late}")
 
+# Save and reload
 ann.save(OUTPUT_DIR, stem="example")
 ann2 = DASannotations.from_stem(os.path.join(OUTPUT_DIR, "example"))
 print(f"  reloaded: {ann2}")
+
+# Load single CSV
+ann3 = DASannotations.from_csv(os.path.join(OUTPUT_DIR, "example_bbox.csv"))
+print(f"  from_csv: {ann3}")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 7. EXPORT ANNOTATIONS
@@ -184,6 +238,12 @@ print(f"  das_raw.mat     OK")
 print(f"  das_fk_env.mat  OK")
 print(f"  das_rgb.npz     OK")
 
+# Reload from NPZ and MAT
+ds_npz = read_npz(os.path.join(OUTPUT_DIR, "das_raw.npz"))
+ds_mat = read_mat(os.path.join(OUTPUT_DIR, "das_raw.mat"))
+print(f"  read_npz: {ds_npz}")
+print(f"  read_mat: {ds_mat}")
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 9. BATCH PROCESSING
 # ─────────────────────────────────────────────────────────────────────────────
@@ -193,12 +253,15 @@ batch_dir = os.path.join(OUTPUT_DIR, "batch")
 os.makedirs(batch_dir, exist_ok=True)
 
 for i in range(3):
-    synth = DASdataset.from_dataset(
-        generate_synthetic_dataset(n_dist=300, n_time=2000, fs_hz=200.0, dx_m=10.0)
-    )
-    synth.filename = f"file_{i:03d}.h5"
+    # generate_synthetic_dataset returns DASdataset directly
+    synth = generate_synthetic_dataset(n_dist=300, n_time=2000, fs_hz=200.0, dx_m=10.0)
     out_path = os.path.join(batch_dir, f"file_{i:03d}_fk.npz")
-    synth.bandpass(10, 30).fk_filter(1400, 3500, 10, 30).save_npz(out_path)
+    (synth
+     .detrend()
+     .taper(alpha=0.05)
+     .bandpass(10, 30)
+     .fk_filter(1400, 3500, 10, 30)
+     .save_npz(out_path))
     print(f"  file_{i:03d} → {out_path}")
 
 # ─────────────────────────────────────────────────────────────────────────────
