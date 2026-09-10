@@ -319,6 +319,46 @@ class DASdataset(_DASRecord):
 
     # ── Representation ────────────────────────────────────────────────────────
 
+    def msr(
+        self,
+        bands: list,
+        percentile: float = 95.0,
+        order: int = 5,
+    ) -> np.ndarray:
+        """Compute the Multispectral Representation (MSR) spectral cube.
+
+        Parameters
+        ----------
+        bands : list of (fmin, fmax) tuples
+            Frequency bands [Hz]. E.g. [(1,5), (5,15), (15,40)].
+        percentile : float
+            Per-band normalisation percentile. Default 95.
+        order : int
+            Butterworth filter order. Default 5.
+
+        Returns
+        -------
+        np.ndarray
+            Spectral cube, shape (n_channels, n_time, n_bands),
+            float32 in [0, 1].
+        """
+        from dasexplorer.core.msr import multispectral_representation, MSRcube
+        array = multispectral_representation(
+            self.tr, self.fs_hz,
+            bands=bands,
+            percentile=percentile,
+            order=order,
+        )
+        return MSRcube(
+            array=array,
+            bands=bands,
+            dist_m=self.dist_m,
+            time_s=self.time_s,
+            fs_hz=self.fs_hz,
+            percentile=percentile,
+        )
+
+
     def rgb(
         self,
         r_band: Tuple[float, float] = (1.0, 5.0),

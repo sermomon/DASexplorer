@@ -9,6 +9,11 @@ from dasexplorer.core.processing import (
 )
 from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
 from dasexplorer.core.rgb import compute_rgb_composite
+from dasexplorer.core.msr import (
+    multispectral_representation, MSRcube,
+    msr_to_rgb, msr_to_grayscale,
+    export_npz as msr_export_npz, export_tiff as msr_export_tiff,
+)
 from dasexplorer.core.readers import read_das_file, generate_synthetic_dataset
 from dasexplorer.core.annotations_model import (
     AnnotationModel, AnnType,
@@ -31,6 +36,10 @@ __all__ = [
     "fk_filter_design",
     "fk_filter_apply",
     "compute_rgb_composite",
+    "multispectral_representation",
+    "MSRcube",
+    "msr_to_rgb",
+    "msr_to_grayscale",
     # Readers
     "read_das_file",
     "generate_synthetic_dataset",

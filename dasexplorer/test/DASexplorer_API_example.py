@@ -264,6 +264,75 @@ for i in range(3):
      .save_npz(out_path))
     print(f"  file_{i:03d} → {out_path}")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. MULTISPECTRAL REPRESENTATION (MSR)
+# ─────────────────────────────────────────────────────────────────────────────
+
+print("\nMultispectral Representation (MSR) ...")
+
+from dasexplorer.core.msr import (
+    multispectral_representation, MSRcube,
+    msr_to_rgb, msr_to_grayscale,
+    export_npz as msr_export_npz,
+    export_tiff as msr_export_tiff,
+)
+
+bands = [(1.0, 5.0), (5.0, 15.0), (15.0, 40.0)]
+
+# ── Via DASdataset method — returns MSRcube with metadata ─────────────────────
+cube = ds.msr(bands=bands, percentile=95.0)
+print(f"  {cube}")                          # MSRcube repr
+print(f"  shape:       {cube.shape}")
+print(f"  n_bands:     {cube.n_bands}")
+print(f"  array range: [{cube.array.min():.3f}, {cube.array.max():.3f}]")
+
+# ── Visualisation ─────────────────────────────────────────────────────────────
+# RGB composite — 3 bands assigned to R, G, B
+rgb = cube.to_rgb(r_band=0, g_band=1, b_band=2)
+print(f"  to_rgb:       {rgb.shape}  {rgb.dtype}")
+
+# Single band — grayscale (default)
+gray = cube.to_grayscale(band=0, colormap='gray')
+print(f"  to_grayscale: {gray.shape}  colormap=gray")
+
+# Single band — false-colour with custom range
+viridis = cube.to_grayscale(band=1, colormap='viridis', vmin=0.0, vmax=0.8)
+print(f"  false-colour: {viridis.shape}  colormap=viridis  vmax=0.8")
+
+# ── Export — method chaining ──────────────────────────────────────────────────
+(cube
+    .export_npz(os.path.join(OUTPUT_DIR, "msr_cube.npz"))
+    .export_tiff(os.path.join(OUTPUT_DIR, "msr_cube.tiff")))
+print(f"  export_npz:  {OUTPUT_DIR}/msr_cube.npz")
+print(f"  export_tiff: {OUTPUT_DIR}/msr_cube.tiff")
+
+# ── Full pipeline chain ───────────────────────────────────────────────────────
+(ds
+    .detrend()
+    .bandpass(1, 80)
+    .msr(bands=bands)
+    .export_npz(os.path.join(OUTPUT_DIR, "msr_processed.npz")))
+print(f"  detrend → bandpass → msr → export_npz OK")
+
+# ── Reload and verify ─────────────────────────────────────────────────────────
+data = np.load(os.path.join(OUTPUT_DIR, "msr_cube.npz"))
+print(f"  reloaded keys: {list(data.keys())}")
+assert data['cube'].shape == cube.shape
+
+# ── 5-band cube for ML pipelines ──────────────────────────────────────────────
+bands5 = [(1,5),(5,10),(10,20),(20,40),(40,80)]
+cube5  = ds.msr(bands=bands5)
+print(f"  5-band cube: {cube5.shape}  (ready for ML)")
+
+# ── Standalone — returns ndarray directly ────────────────────────────────────
+arr = multispectral_representation(ds.tr, ds.fs_hz, bands=bands)
+print(f"  standalone:  {arr.shape}  {arr.dtype}  (ndarray, no metadata)")
+
+# ── numpy interop ─────────────────────────────────────────────────────────────
+arr2 = np.array(cube)
+print(f"  np.array(cube): {arr2.shape}")
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
