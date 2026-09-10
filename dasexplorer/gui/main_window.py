@@ -2461,17 +2461,6 @@ class MainWindow(QtWidgets.QMainWindow):
         spectral content, since every band IS a different filtered version
         of the same raw signal.
         """
-        # Debug log — remove after diagnosis
-        try:
-            with open("C:/Lab/projects/DASexplorer/rgb_debug.txt", "a") as _dbg:
-                _dbg.write("_apply_rgb called\n")
-                if self.dataset is not None:
-                    _dbg.write(f"  tr.shape={self.dataset.tr.shape} fs={self.dataset.fs_hz}\n")
-                    _dbg.write(f"  tr range=[{self.dataset.tr.min():.4e}, {self.dataset.tr.max():.4e}]\n")
-                else:
-                    _dbg.write("  dataset is None\n")
-        except Exception as _e:
-            pass
 
         if self.dataset is None:
             self._status_error("No data loaded.")
@@ -2511,8 +2500,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 r_band=(r_min, r_max), g_band=(g_min, g_max), b_band=(b_min, b_max),
                 percentile=percentile,
             )
-            with open("C:/Lab/projects/DASexplorer/rgb_debug.txt", "a") as _dbg:
-                _dbg.write(f"  rgb.shape={rgb.shape} max={rgb.max()} mean={rgb.mean():.2f}\n")
         except Exception as exc:
             self._status_error(f"RGB composite error: {exc}")
             self.waterfall_rgb.set_rois_visible(True)
