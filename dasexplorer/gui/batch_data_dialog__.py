@@ -241,7 +241,7 @@ class BatchDataDialog(QtWidgets.QDialog):
                         start_datetime_utc=start_iso,
                         filename=ds.filename or fname,
                         reader=ds.reader or reader,
-                        downsample=np.int64(ds.channel_stride or 1),
+                        downsample=np.int64(ds.downsample or 1),
                         units=ds.units or "",
                         metadata_json=meta_json,
                     )
@@ -253,7 +253,7 @@ class BatchDataDialog(QtWidgets.QDialog):
                         start_datetime_utc=start_iso,
                         filename=ds.filename or fname,
                         reader=ds.reader or reader,
-                        downsample=int(ds.channel_stride or 1),
+                        downsample=int(ds.downsample or 1),
                         units=ds.units or "",
                         metadata_json=meta_json,
                     ), do_compression=True)

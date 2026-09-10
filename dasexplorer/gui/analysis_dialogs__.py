@@ -2100,13 +2100,14 @@ class FKViewDialog(QtWidgets.QDialog):
         ctrl.addSpacing(8)
         self.chk_grid = QtWidgets.QCheckBox("Grid")
         self.chk_grid.setChecked(False)
+        ctrl.addWidget(self.chk_grid)
+
         btn_apply = QtWidgets.QPushButton("Apply")
         btn_apply.setMinimumWidth(70)
         btn_apply.clicked.connect(self._on_apply)
         ctrl.addWidget(btn_apply)
 
         ctrl.addStretch()
-        ctrl.addWidget(self.chk_grid)
         btn_export = QtWidgets.QPushButton("Export")
         btn_export.setMinimumWidth(70)
         btn_export.clicked.connect(self._export_png)
@@ -2175,7 +2176,7 @@ class FKViewDialog(QtWidgets.QDialog):
         try:
             from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
             dx     = float(ds.dist_m[1] - ds.dist_m[0]) if ds.n_dist > 1 else 1.0
-            stride = int(ds.channel_stride or 1)
+            stride = int(ds.downsample or 1)
             nyq    = ds.fs_hz / 2.0
             fmin   = max(0.01, min(self._fk_fmin, nyq * 0.99))
             fmax   = max(fmin + 0.01, min(self._fk_fmax, nyq * 0.99))
@@ -2340,6 +2341,7 @@ class RGBViewDialog(QtWidgets.QDialog):
         ctrl.addSpacing(8)
         self.chk_grid = QtWidgets.QCheckBox("Grid")
         self.chk_grid.setChecked(False)
+        ctrl.addWidget(self.chk_grid)
 
         ctrl.addSpacing(8)
         btn_apply = QtWidgets.QPushButton("Apply")
@@ -2348,7 +2350,6 @@ class RGBViewDialog(QtWidgets.QDialog):
         ctrl.addWidget(btn_apply)
 
         ctrl.addStretch()
-        ctrl.addWidget(self.chk_grid)
         btn_export = QtWidgets.QPushButton("Export")
         btn_export.setMinimumWidth(70)
         btn_export.clicked.connect(self._export_png)

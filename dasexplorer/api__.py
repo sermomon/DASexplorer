@@ -84,7 +84,7 @@ class DASdataset(DASDataset):
             start_datetime_utc=self.start_datetime_utc,
             filename=self.filename,
             reader=self.reader,
-            channel_stride=self.channel_stride,
+            downsample=self.downsample,
             channel_offset=self.channel_offset,
             metadata=meta,
             units=self.units,
@@ -155,7 +155,7 @@ class DASdataset(DASDataset):
             New instance with F-K filtered tr.
         """
         from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
-        stride = int(self.channel_stride or 1)
+        stride = int(self.downsample or 1)
         fk = fk_filter_design(
             trace_shape=self.tr.shape,
             dx=self.dx / stride,
@@ -305,7 +305,7 @@ class DASdataset(DASDataset):
             start_datetime_utc=ds.start_datetime_utc,
             filename=ds.filename,
             reader=ds.reader,
-            channel_stride=ds.channel_stride,
+            downsample=ds.downsample,
             channel_offset=ds.channel_offset,
             metadata=dict(ds.metadata),
             units=ds.units,
@@ -486,7 +486,7 @@ class DASannotations:
             di1 = int(np.searchsorted(ds.dist_m, d1))
             nt  = ds.n_time
             nx  = ds.n_dist
-            downsample = int(ds.channel_stride or 1)
+            downsample = int(ds.downsample or 1)
         ann = BBoxAnnotation(
             ann_type="bbox", id=id, comment=comment,
             t0=t0, t1=t1, d0=d0, d1=d1,

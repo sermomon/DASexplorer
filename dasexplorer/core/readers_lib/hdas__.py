@@ -96,7 +96,7 @@ def read_hdas25_v1(
         start_datetime_utc=file_start_datetime,
         filename=file_name,
         reader="hdas2.5",
-        channel_stride=downsample,
+        downsample=downsample,
         channel_offset=channel_offset,
         metadata={"num_files": num_files, "dx_m": dx_m},
         units="DC",

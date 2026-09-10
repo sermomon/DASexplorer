@@ -484,7 +484,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 start_datetime_utc=start_iso,
                 filename=ds.filename or "",
                 reader=ds.reader or "",
-                downsample=np.int64(ds.channel_stride or 1),
+                downsample=np.int64(ds.downsample or 1),
                 units=ds.units or "",
                 metadata_json=__import__("json").dumps(ds.metadata or {}),
             )
@@ -536,7 +536,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     "start_datetime_utc": start_iso,
                     "filename": ds.filename or "",
                     "reader": ds.reader or "",
-                    "downsample": int(ds.channel_stride or 1),
+                    "downsample": int(ds.downsample or 1),
                     "units": ds.units or "",
                     "metadata_json": __import__("json").dumps(ds.metadata or {}),
                 },
@@ -1463,7 +1463,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.dataset is None:
             return
         stride_new = STRIDE_VALUES[index]
-        stride_cur = int(self.dataset.channel_stride or 1)
+        stride_cur = int(self.dataset.downsample or 1)
         if stride_new == stride_cur:
             return
         if stride_new > stride_cur and stride_new % stride_cur == 0:
@@ -1471,7 +1471,7 @@ class MainWindow(QtWidgets.QMainWindow):
             factor = stride_new // stride_cur
             self.dataset.tr     = self.dataset.tr[::factor, :]
             self.dataset.dist_m = self.dataset.dist_m[::factor]
-            self.dataset.channel_stride = stride_new
+            self.dataset.downsample = stride_new
             self._recalculate_annotation_indices()
             self._reload_current_view()
             self._status_done(f"Stride {stride_new} applied", timeout_ms=3000)
@@ -1531,7 +1531,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dx = float(self.dataset.dist_m[1] - self.dataset.dist_m[0]) if self.dataset.n_dist > 1 else 0.0
         self.lbl_channels.setText(f"Channels: {self.dataset.n_dist}")
         self.lbl_spatial.setText(f"Spatial sampling: {dx:.1f} m")
-        actual_stride = int(self.dataset.channel_stride or 1)
+        actual_stride = int(self.dataset.downsample or 1)
         stride_to_show = actual_stride if actual_stride in STRIDE_VALUES else 1
         self.combo_stride.blockSignals(True)
         self.combo_stride.setCurrentIndex(STRIDE_VALUES.index(stride_to_show))
@@ -1750,8 +1750,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     t0=t0, t1=t1, d0=d0, d1=d1,
                     ti0=ti0, ti1=ti1, di0=di0, di1=di1,
                     nt=ds.n_time,
-                    nx=ds.n_dist * int(ds.channel_stride or 1) + int(getattr(ds, "channel_offset", 0) or 0),
-                    downsample=ds.channel_stride or 1,
+                    nx=ds.n_dist * int(ds.downsample or 1) + int(getattr(ds, "channel_offset", 0) or 0),
+                    downsample=ds.downsample or 1,
                     start_datetime_utc=start_dt,
                 )
             row += len(model)
@@ -2010,7 +2010,7 @@ class MainWindow(QtWidgets.QMainWindow):
             t0, t1, d0, d1, ds.time_s, ds.dist_m
         )
         # Convert local array indices → absolute cable indices (stride=1, no crop)
-        _stride = int(ds.channel_stride or 1)
+        _stride = int(ds.downsample or 1)
         _offset = int(getattr(ds, "channel_offset", 0) or 0)
         di0 = di0_local * _stride + _offset
         di1 = di1_local * _stride + _offset
@@ -2021,7 +2021,7 @@ class MainWindow(QtWidgets.QMainWindow):
             t0=t0, t1=t1, d0=d0, d1=d1,
             ti0=ti0, ti1=ti1, di0=di0, di1=di1,
             nt=ds.n_time, nx=nx_original,
-            downsample=ds.channel_stride or 1,
+            downsample=ds.downsample or 1,
             start_datetime_utc=start_dt,
         )
         model = self._ann_models[AnnType.BBOX]
@@ -2050,7 +2050,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cx_t=cx, cy_d=cy, w_t=w, h_d=h, angle_deg=angle_deg,
             cx_ti=cx_ti, cy_di=cy_di, w_ti=w_ti, h_di=h_di,
             nt=ds.n_time, nx=ds.n_dist,
-            downsample=ds.channel_stride or 1,
+            downsample=ds.downsample or 1,
             start_datetime_utc=start_dt,
         )
         model = self._ann_models[AnnType.OBB]
@@ -2077,7 +2077,7 @@ class MainWindow(QtWidgets.QMainWindow):
             kp_t=json.dumps(pts_t), kp_d=json.dumps(pts_d),
             kp_ti=json.dumps(pts_ti), kp_di=json.dumps(pts_di),
             nt=ds.n_time, nx=ds.n_dist,
-            downsample=ds.channel_stride or 1,
+            downsample=ds.downsample or 1,
             start_datetime_utc=start_dt,
         )
         model = self._ann_models[AnnType.KP]
@@ -2104,7 +2104,7 @@ class MainWindow(QtWidgets.QMainWindow):
             pts_t=json.dumps(pts_t), pts_d=json.dumps(pts_d),
             pts_ti=json.dumps(pts_ti), pts_di=json.dumps(pts_di),
             nt=ds.n_time, nx=ds.n_dist,
-            downsample=ds.channel_stride or 1,
+            downsample=ds.downsample or 1,
             start_datetime_utc=start_dt,
         )
         model = self._ann_models[AnnType.LINE]
@@ -2396,7 +2396,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             ds     = self.dataset
             dx     = float(ds.dist_m[1] - ds.dist_m[0]) if ds.n_dist > 1 else 1.0
-            stride = int(ds.channel_stride or 1)
+            stride = int(ds.downsample or 1)
 
             fk_filt = fk_filter_design(
                 trace_shape=tr_src.shape,
@@ -2505,6 +2505,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         try:
             import sys
+            print(f"[RGB debug] tr.shape={self.dataset.tr.shape} fs={self.dataset.fs_hz}", file=sys.stderr)
+            print(f"[RGB debug] tr range: [{self.dataset.tr.min():.4e}, {self.dataset.tr.max():.4e}]", file=sys.stderr)
+            print(f"[RGB debug] R=[{r_min},{r_max}] G=[{g_min},{g_max}] B=[{b_min},{b_max}] pct={percentile}", file=sys.stderr)
             from dasexplorer.core.rgb import compute_rgb_composite
             rgb = compute_rgb_composite(
                 self.dataset.tr, self.dataset.fs_hz,

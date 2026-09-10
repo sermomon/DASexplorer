@@ -125,7 +125,7 @@ def read_svalbard_v1(
         start_datetime_utc=start_dt,
         filename=os.path.basename(path),
         reader="svalbard_v1",
-        channel_stride=downsample,
+        downsample=downsample,
         channel_offset=channel_offset,
         metadata={
             "dx_m": dx_m,
@@ -191,7 +191,7 @@ def read_svalbard_v1(
 #         start_datetime_utc=start_datetime_utc,
 #         filename=filename,
 #         interrogator=interrogator or None,
-#         channel_stride=downsample,
+#         downsample=downsample,
 #         metadata=metadata,
 #         units=units or None,
 #     )
@@ -270,7 +270,7 @@ def read_svalbard_v1(
 #         start_datetime_utc=start_datetime_utc,
 #         filename=filename or os.path.basename(path),
 #         interrogator=interrogator or None,
-#         channel_stride=downsample,
+#         downsample=downsample,
 #         metadata=metadata,
 #         units=units or None,
 #     )

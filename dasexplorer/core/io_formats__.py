@@ -71,7 +71,7 @@ def read_npz(path: str) -> DASDataset:
         start_datetime_utc=start_datetime_utc,
         filename=filename,
         reader=reader or None,
-        channel_stride=downsample,
+        downsample=downsample,
         metadata=metadata,
         units=units or None,
     )
@@ -151,7 +151,7 @@ def read_mat(path: str) -> DASDataset:
         start_datetime_utc=start_datetime_utc,
         filename=filename or os.path.basename(path),
         reader=reader or None,
-        channel_stride=downsample,
+        downsample=downsample,
         metadata=metadata,
         units=units or None,
     )

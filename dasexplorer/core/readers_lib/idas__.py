@@ -111,7 +111,7 @@ def read_idas_v1(
         start_datetime_utc=start_dt,
         filename=fname,
         reader="silixa",
-        channel_stride=downsample,
+        downsample=downsample,
         channel_offset=channel_offset,
         metadata={
             "dx_m": dx_m,

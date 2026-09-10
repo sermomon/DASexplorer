@@ -114,7 +114,7 @@ def read_optodas_v1(
         start_datetime_utc=start_dt,
         filename=os.path.basename(path),
         reader="optodas_v2",
-        channel_stride=downsample,
+        downsample=downsample,
         channel_offset=channel_offset,
         metadata={
             "dx_m": dx_m,
@@ -238,7 +238,7 @@ def read_optodas_v2(
         start_datetime_utc=start_dt,
         filename=os.path.basename(path),
         reader="optodas",
-        channel_stride=downsample,
+        downsample=downsample,
         channel_offset=channel_offset,
         metadata={
             "dx_m":           dx_m,
