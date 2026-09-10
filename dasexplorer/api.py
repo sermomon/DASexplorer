@@ -70,7 +70,9 @@ class DASdataset(DASDataset):
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _replace_tr(self, tr: np.ndarray, processing_tag: str) -> "DASdataset":
+    def _replace_tr(self, tr: np.ndarray, processing_tag: str,
+                    time_s: np.ndarray = None, fs_hz: float = None,
+                    downsample: int = None) -> "DASdataset":
         """Return a new DASdataset with tr replaced and metadata annotated."""
         meta = dict(self.metadata)
         history = list(meta.get("processing", []))
@@ -79,13 +81,14 @@ class DASdataset(DASDataset):
         return DASdataset(
             tr=tr,
             dist_m=self.dist_m,
-            time_s=self.time_s,
-            fs_hz=self.fs_hz,
+            time_s=time_s if time_s is not None else self.time_s,
+            fs_hz=fs_hz if fs_hz is not None else self.fs_hz,
             start_datetime_utc=self.start_datetime_utc,
             filename=self.filename,
             reader=self.reader,
             channel_stride=self.channel_stride,
             channel_offset=self.channel_offset,
+            downsample=downsample if downsample is not None else self.downsample,
             metadata=meta,
             units=self.units,
         )
@@ -171,6 +174,143 @@ class DASdataset(DASDataset):
         return self._replace_tr(
             tr_fk,
             f"fk_filter(c={c_min}-{c_max},f={fmin}-{fmax})"
+        )
+
+
+    def detrend(self, mode: str = 'linear') -> "DASdataset":
+        """Remove trend from each channel along the time axis.
+
+        Parameters
+        ----------
+        mode : {'linear', 'constant'}
+            ``'linear'`` (default) — remove best-fit linear trend.
+            ``'constant'`` — remove the mean (DC offset).
+
+        Returns
+        -------
+        DASdataset
+            New instance with detrended tr.
+        """
+        from dasexplorer.core.processing import detrend as _detrend
+        return self._replace_tr(_detrend(self.tr, mode=mode),
+                                f"detrend(mode={mode})")
+
+    def taper(self, alpha: float = 0.05, mode: str = 'tukey') -> "DASdataset":
+        """Apply a tapering window to the time edges of each channel.
+
+        Parameters
+        ----------
+        alpha : float
+            Fraction of the trace tapered at each end. Default 0.05.
+        mode : {'tukey', 'hann', 'cosine'}
+            Window type. Default ``'tukey'``.
+
+        Returns
+        -------
+        DASdataset
+            New instance with tapered tr.
+        """
+        from dasexplorer.core.processing import taper as _taper
+        return self._replace_tr(_taper(self.tr, alpha=alpha, mode=mode),
+                                f"taper(alpha={alpha},mode={mode})")
+
+    def normalize(self, mode: str = 'rms') -> "DASdataset":
+        """Normalize each channel by its RMS, peak or z-score.
+
+        Parameters
+        ----------
+        mode : {'rms', 'peak', 'zscore'}
+            Normalisation method. Default ``'rms'``.
+
+        Returns
+        -------
+        DASdataset
+            New instance with normalized tr.
+        """
+        from dasexplorer.core.processing import normalize as _normalize
+        return self._replace_tr(_normalize(self.tr, mode=mode),
+                                f"normalize(mode={mode})")
+
+    # ── Temporal resampling ───────────────────────────────────────────────────
+
+    def downsample_time(
+        self,
+        factor: int = None,
+        fs_target: float = None,
+        mode: str = 'decimate',
+    ) -> "DASdataset":
+        """Temporally downsample the dataset.
+
+        Parameters
+        ----------
+        factor : int, optional
+            Integer decimation factor. Either ``factor`` or ``fs_target``
+            must be provided.
+        fs_target : float, optional
+            Target sampling frequency [Hz].
+        mode : {'decimate', 'simple'}
+            ``'decimate'`` (default) — anti-aliasing filter + decimation
+            (correct for scientific use). ``'simple'`` — take every N-th
+            sample with no pre-filtering.
+
+        Returns
+        -------
+        DASdataset
+            New instance with updated tr, time_s, fs_hz and downsample.
+        """
+        from dasexplorer.core.processing import downsample_signal
+        tr_down, fs_new, q = downsample_signal(
+            self.tr, self.fs_hz,
+            factor=factor, fs_target=fs_target, mode=mode
+        )
+        n_new = tr_down.shape[1]
+        time_new = np.arange(n_new) / fs_new
+        cum_ds = (self.downsample or 1) * q
+        return self._replace_tr(
+            tr_down,
+            f"downsample_time(factor={q},mode={mode})",
+            time_s=time_new,
+            fs_hz=fs_new,
+            downsample=cum_ds,
+        )
+
+    def upsample_time(
+        self,
+        factor: int = None,
+        fs_target: float = None,
+        mode: str = 'linear',
+    ) -> "DASdataset":
+        """Temporally upsample the dataset.
+
+        Parameters
+        ----------
+        factor : int, optional
+            Integer upsampling factor. Either ``factor`` or ``fs_target``
+            must be provided.
+        fs_target : float, optional
+            Target sampling frequency [Hz].
+        mode : {'linear', 'cubic', 'fft'}
+            ``'linear'`` (default) — linear interpolation.
+            ``'cubic'`` — cubic spline interpolation.
+            ``'fft'`` — FFT-based resampling (best spectral fidelity).
+
+        Returns
+        -------
+        DASdataset
+            New instance with updated tr, time_s, fs_hz.
+        """
+        from dasexplorer.core.processing import upsample_signal
+        tr_up, fs_new, q = upsample_signal(
+            self.tr, self.fs_hz,
+            factor=factor, fs_target=fs_target, mode=mode
+        )
+        n_new = tr_up.shape[1]
+        time_new = np.arange(n_new) / fs_new
+        return self._replace_tr(
+            tr_up,
+            f"upsample_time(factor={q},mode={mode})",
+            time_s=time_new,
+            fs_hz=fs_new,
         )
 
     # ── Representation ────────────────────────────────────────────────────────

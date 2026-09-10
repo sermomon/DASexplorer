@@ -36,6 +36,9 @@ class DASDataset:
         Interrogator type used to acquire the data (e.g. "hdas2.5", "optodas").
     channel_stride : int, optional
         Channel stride applied before loading (1 or None = no subsampling).
+    downsample : int, optional
+        Cumulative temporal decimation factor applied via downsample_time().
+        None means no temporal downsampling has been applied.
     metadata : dict
         Free-form dictionary for any additional interrogator-specific info.
     units : str, optional
@@ -55,6 +58,7 @@ class DASDataset:
     filename: Optional[str] = None
     reader: Optional[str] = None
     channel_stride: Optional[int] = None
+    downsample:     Optional[int] = None
     # Number of channels from the cable start to the first loaded channel,
     # at stride=1. Used to convert local array indices to absolute cable indices.
     # channel_offset = 0 means the array starts at the beginning of the cable.
