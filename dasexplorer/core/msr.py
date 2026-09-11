@@ -481,6 +481,57 @@ class MSRcube:
 
     # ── Dunder ────────────────────────────────────────────────────────────────
 
+    def to_xarray(self):
+        """Convert this spectral cube to an xarray DataArray.
+
+        Returns a DataArray with dimensions ``("distance", "time", "band")``,
+        physical coordinates, and band labels as human-readable strings
+        (e.g. ``"1-5Hz"``, ``"5-15Hz"``).
+
+        Requires the optional ``xarray`` package.
+
+        Returns
+        -------
+        xarray.DataArray
+            Shape (n_channels, n_time, n_bands),
+            dims ("distance", "time", "band").
+
+        Examples
+        --------
+        >>> cube = ds.msr(bands=[(1,5),(5,15),(15,40)])
+        >>> da = cube.to_xarray()
+        >>> da.sel(band="5-15Hz").plot()       # plot single band
+        >>> da.mean(dim="distance")            # temporal profile
+        >>> da.to_netcdf("output/msr.nc")
+        """
+        try:
+            import xarray as xr
+        except ImportError:
+            raise ImportError(
+                "xarray is required for to_xarray(). "
+                "Install with: pip install xarray"
+            )
+        band_labels = [f"{f0}-{f1}Hz" for f0, f1 in self.bands]
+        coords = {
+            "band": ("band", band_labels, {"units": "Hz"}),
+        }
+        if self.dist_m is not None:
+            coords["distance"] = ("distance", self.dist_m, {"units": "m"})
+        if self.time_s is not None:
+            coords["time"] = ("time", self.time_s, {"units": "s"})
+        attrs = {
+            "percentile": float(self.percentile) if self.percentile else None,
+            "fs_hz":      float(self.fs_hz) if self.fs_hz else None,
+            "bands_hz":   str(self.bands),
+        }
+        return xr.DataArray(
+            data=self._array,
+            dims=["distance", "time", "band"],
+            coords=coords,
+            attrs={k: v for k, v in attrs.items() if v is not None},
+            name="msr_cube",
+        )
+
     def __repr__(self) -> str:
         bands_str = ", ".join(f"{f0}-{f1}Hz" for f0, f1 in self.bands)
         return (

@@ -19,8 +19,63 @@ import scipy.io as sio
 from dasexplorer.core.data_model import _DASRecord
 from dasexplorer.core.processing import bandpass_filter, hilbert_envelope
 
-# from dasexplorer.core.msr import MSRcube
 
+# TODO: Migrate DASdataset to xarray.DataArray
+#
+# Currently DASdataset inherits from _DASRecord (a plain Python dataclass)
+# and stores `tr` as a raw numpy array with `dist_m`, `time_s`, `fs_hz` as
+# separate attributes. This works but misses the benefits of a proper
+# N-dimensional labelled array.
+#
+# The right long-term design — as demonstrated by DASCore (Patch) — is to
+# base DASdataset on xarray.DataArray instead of _DASRecord. The DataArray
+# would store:
+#   - data   = tr (n_channels, n_time) float32
+#   - dims   = ("distance", "time")
+#   - coords = {"distance": dist_m [m], "time": time_s [s]}
+#   - attrs  = {fs_hz, units, reader, filename, channel_stride, ...}
+#
+# Benefits:
+#   - .sel(distance=slice(20000, 30000)) — selection by physical value
+#   - .to_netcdf("output.nc") — standard scientific export format
+#   - Native interoperability with DASCore, ObsPy, hvPlot, Dask
+#   - Rolling, resample, groupby operations built-in
+#   - Units support via pint-xarray
+#   - to_xarray() would simply return self instead of building a new object
+#
+# Architecture after migration — two independent layers:
+#
+#   _DASRecord (data_model.py) — KEEP AS IS
+#       Plain dataclass. Used internally by the GUI (waterfall.py,
+#       analysis_dialogs.py, main_window.py). The GUI works with raw
+#       numpy arrays (.tr, .dist_m, .time_s) — no xarray needed there.
+#       Lightweight, no external dependencies beyond numpy.
+#
+#   DASdataset (api.py) — MIGRATE: inherit from xr.DataArray, not _DASRecord
+#       Public API class. from_dataset(_DASRecord) converts between the two
+#       layers (this method already exists). Processing methods registered
+#       as xarray accessors (xr.register_dataarray_accessor) or kept as
+#       standalone functions in processing.py.
+#
+# What changes in the migration:
+#   - DASdataset.__init__: build a DataArray instead of calling _DASRecord
+#   - DASdataset.tr → DASdataset.values (numpy array access)
+#   - DASdataset.dist_m → DASdataset.coords["distance"].values
+#   - DASdataset.time_s → DASdataset.coords["time"].values
+#   - save_npz / save_mat: use .values for the array
+#   - from_file() / from_dataset(): return DataArray directly
+#   - to_xarray(): return self
+#
+# What does NOT change:
+#   - _DASRecord — stays exactly as is, GUI keeps using it
+#   - All processing functions in processing.py, fk_filter.py, rgb.py, msr.py
+#     — they operate on numpy arrays, no change needed
+#   - DASannotations — independent of DASdataset internals
+#   - MSRcube — independent
+#
+# See: DASdataset.to_xarray() for the target structure.
+#      DASCore Patch for a reference implementation.
+#      https://docs.xarray.dev/en/stable/internals/extending-xarray.html
 
 class DASdataset(_DASRecord):
     """PUBLIC API — High-level DAS dataset with built-in processing and export methods.
@@ -397,6 +452,58 @@ class DASdataset(_DASRecord):
             b_band=b_band,
             percentile=percentile,
             order=order,
+        )
+
+    # ── Interoperability ──────────────────────────────────────────────────────
+
+    def to_xarray(self):
+        """Convert this dataset to an xarray DataArray.
+
+        Returns a DataArray with dimensions ``("distance", "time")``,
+        physical coordinates, and all metadata stored as attributes.
+        This is the structure DASdataset will be based on in a future
+        version — ``to_xarray()`` will eventually return ``self``.
+
+        Requires the optional ``xarray`` package.
+
+        Returns
+        -------
+        xarray.DataArray
+            Shape (n_channels, n_time), dims ("distance", "time"),
+            coords: distance [m], time [s].
+
+        Examples
+        --------
+        >>> da = ds.to_xarray()
+        >>> da.sel(distance=slice(20000, 30000)).plot()
+        >>> da.to_netcdf("output/das.nc")
+        """
+        try:
+            import xarray as xr
+        except ImportError:
+            raise ImportError(
+                "xarray is required for to_xarray(). "
+                "Install with: pip install xarray"
+            )
+        attrs = {
+            "fs_hz":               float(self.fs_hz),
+            "units":               self.units or "",
+            "reader":              self.reader or "",
+            "filename":            self.filename or "",
+            "channel_stride":      int(self.channel_stride or 1),
+            "channel_offset":      int(self.channel_offset or 0),
+            "start_datetime_utc":  str(self.start_datetime_utc or ""),
+        }
+        attrs.update(self.metadata or {})
+        return xr.DataArray(
+            data=self.tr,
+            dims=["distance", "time"],
+            coords={
+                "distance": ("distance", self.dist_m, {"units": "m"}),
+                "time":     ("time",     self.time_s, {"units": "s"}),
+            },
+            attrs=attrs,
+            name="strain_rate",
         )
 
     # ── Export ────────────────────────────────────────────────────────────────
