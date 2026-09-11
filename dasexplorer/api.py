@@ -456,6 +456,37 @@ class DASdataset(_DASRecord):
 
     # ── Interoperability ──────────────────────────────────────────────────────
 
+    def to_dasxarray(self):
+        """Convert this dataset to a DASxarray (xarray-based accessor).
+
+        Returns an ``xr.DataArray`` with the ``.das`` accessor registered,
+        giving access to the same processing API as DASdataset plus all
+        native xarray operations (selection, resampling, groupby, Dask,
+        NetCDF export, DASCore interoperability, etc.).
+
+        Requires the optional ``xarray`` package.
+
+        Returns
+        -------
+        xr.DataArray
+            DataArray with ``.das`` accessor attached.
+
+        Examples
+        --------
+        >>> da = DASdataset.from_file("data.hdf5", reader="hdas25_v1").to_dasxarray()
+        >>> result = da.das.detrend().bandpass(10, 80).normalize()
+        >>> result._obj.to_netcdf("output.nc")
+        >>> result.das.save_npz("output.npz")
+        """
+        try:
+            from dasexplorer.api import DASxarray
+            return DASxarray.from_dataset(self)
+        except ImportError:
+            raise ImportError(
+                "to_dasxarray() requires xarray. "
+                "Install with: pip install xarray"
+            )
+
     def to_xarray(self):
         """Convert this dataset to an xarray DataArray.
 
