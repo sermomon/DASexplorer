@@ -1108,6 +1108,168 @@ try:
                 name="strain_rate",
             )
 
+        @classmethod
+        def from_file(cls, path: str, reader: str,
+                      **kwargs) -> "xr.DataArray":
+            """Read a DAS file and return a DAS-aware DataArray.
+
+            This is the primary entry point for DASxarray — equivalent to
+            ``DASdataset.from_file(...).to_dasxarray()`` but in a single
+            call. When DASxarray replaces DASdataset as the public API
+            class, this method will be the standard way to load DAS data.
+
+            Parameters
+            ----------
+            path : str
+                Path to the DAS file.
+            reader : str
+                Reader key. Available readers: ``'hdas2.5_v1'``,
+                ``'optasense_v1'``, ``'silixa_v1'``, ``'optodas_v1'``,
+                ``'optodas_v2'``, ``'svalbard_v1'``.
+            **kwargs
+                Additional keyword arguments passed to the reader (e.g.
+                ``stride``, ``read_dmin_m``, ``read_dmax_m``).
+
+            Returns
+            -------
+            xr.DataArray
+                DataArray with dims (``distance``, ``time``) and ``.das``
+                accessor attached automatically.
+
+            Examples
+            --------
+            >>> da = DASxarray.from_file(
+            ...     "data.bin", reader="hdas2.5_v1", stride=2,
+            ...     read_dmin_m=20000.0, read_dmax_m=65000.0,
+            ... )
+            >>> result = da.das.detrend().bandpass(10, 80).normalize()
+            >>> result._obj.to_netcdf("output.nc")
+            """
+            from dasexplorer.core.readers import read_das_file
+            ds = read_das_file(path, reader=reader, **kwargs)
+            return cls.from_dataset(ds)
+
+
+        @classmethod
+        def from_netcdf(cls, path: str) -> "xr.DataArray":
+            """Read a NetCDF file and return a DAS-aware DataArray.
+
+            Reads a NetCDF file previously saved with
+            ``da.das._obj.to_netcdf(path)`` or any NetCDF with
+            ``distance`` and ``time`` dimensions.
+
+            Parameters
+            ----------
+            path : str
+                Path to the NetCDF file (.nc).
+
+            Returns
+            -------
+            xr.DataArray
+                DataArray with ``.das`` accessor attached.
+
+            Examples
+            --------
+            >>> da = DASxarray.from_file("data.bin", reader="hdas2.5_v1")
+            >>> da.das.bandpass(10, 80)._obj.to_netcdf("output.nc")
+            >>> da2 = DASxarray.from_netcdf("output.nc")
+            """
+            da = xr.open_dataarray(path)
+            return da
+
+        @classmethod
+        def from_npz(cls, path: str) -> "xr.DataArray":
+            """Read a DASexplorer NPZ archive and return a DAS-aware DataArray.
+
+            Reads files saved with ``ds.save_npz()`` or
+            ``da.das.save_npz()``.
+
+            Parameters
+            ----------
+            path : str
+                Path to the NPZ file.
+
+            Returns
+            -------
+            xr.DataArray
+                DataArray with ``.das`` accessor attached.
+            """
+            from dasexplorer.core.io_formats import read_npz
+            ds = read_npz(path)
+            return cls.from_dataset(ds)
+
+        @classmethod
+        def from_mat(cls, path: str) -> "xr.DataArray":
+            """Read a DASexplorer MAT file and return a DAS-aware DataArray.
+
+            Reads files saved with ``ds.save_mat()`` or
+            ``da.das.save_mat()``.
+
+            Parameters
+            ----------
+            path : str
+                Path to the MAT file.
+
+            Returns
+            -------
+            xr.DataArray
+                DataArray with ``.das`` accessor attached.
+            """
+            from dasexplorer.core.io_formats import read_mat
+            ds = read_mat(path)
+            return cls.from_dataset(ds)
+
+        @classmethod
+        def from_xarray(cls, da: "xr.DataArray",
+                        fs_hz: float = None) -> "xr.DataArray":
+            """Attach the ``.das`` accessor to any existing DataArray.
+
+            Use this to bring external DataArrays (from DASCore, ObsPy,
+            or any other source) into the DASexplorer processing pipeline.
+            The DataArray should have ``distance`` and ``time`` dimensions.
+
+            Parameters
+            ----------
+            da : xr.DataArray
+                Source DataArray. Should have dims
+                ``("distance", "time")``.
+            fs_hz : float, optional
+                Sampling frequency [Hz]. If not provided, inferred from
+                the ``time`` coordinate spacing, or from ``da.attrs``.
+
+            Returns
+            -------
+            xr.DataArray
+                Same DataArray with ``.das`` accessor attached and
+                ``fs_hz`` stored in attrs if not already present.
+
+            Examples
+            --------
+            >>> import dascore as dc
+            >>> patch = dc.spool("data/")[0]
+            >>> da = DASxarray.from_xarray(patch.to_xarray(), fs_hz=200.0)
+            >>> da.das.bandpass(10, 80)
+            """
+            import numpy as np
+            if not isinstance(da, xr.DataArray):
+                raise TypeError(
+                    f"Expected xr.DataArray, got {type(da).__name__}."
+                )
+            new_attrs = dict(da.attrs)
+            if "fs_hz" not in new_attrs:
+                if fs_hz is not None:
+                    new_attrs["fs_hz"] = float(fs_hz)
+                elif "time" in da.coords and len(da.coords["time"]) > 1:
+                    dt = float(da.coords["time"][1] - da.coords["time"][0])
+                    new_attrs["fs_hz"] = round(1.0 / dt, 6)
+                else:
+                    new_attrs["fs_hz"] = 1.0
+            if "processing" not in new_attrs:
+                new_attrs["processing"] = []
+            result = da.copy()
+            result.attrs.update(new_attrs)
+            return result
+
         # ── Processing — returns self for chaining ────────────────────────────
 
         def detrend(self, mode: str = "linear") -> "DASxarray":
@@ -1449,6 +1611,42 @@ except ImportError:
             )
         @classmethod
         def from_dataset(cls, ds):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_file(cls, path, reader, **kwargs):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_netcdf(cls, path):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_npz(cls, path):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_mat(cls, path):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_xarray(cls, da, fs_hz=None):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_file(cls, path, reader, **kwargs):
             raise ImportError(
                 "DASxarray requires xarray. "
                 "Install with: pip install xarray"
