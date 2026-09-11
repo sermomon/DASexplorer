@@ -153,23 +153,39 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self._di0 = di0
         self._di1 = di1
         self._cur_ch = (di0 + di1) // 2
+        self._stride = int(dataset.channel_stride or 1)
+        self._offset = int(dataset.channel_offset or 0)
 
         self._build_ui()
         self._plot(self._cur_ch, update_range=True)
+
+    def _local_to_orig(self, ch_local: int) -> int:
+        """Convert local array channel index to original cable channel."""
+        return ch_local * self._stride + self._offset
+
+    def _orig_to_local(self, ch_orig: int) -> int:
+        """Convert original cable channel to local array index."""
+        return max(self._di0, min(
+            round((ch_orig - self._offset) / self._stride),
+            self._di1 - 1
+        ))
 
     def _build_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setSpacing(4)
         layout.setContentsMargins(6, 6, 6, 6)
 
-        # Channel spinbox — created here so it is available to both the top
-        # control bar and the scrollbar sync callbacks defined later.
+        # Channel spinbox — shows and accepts ORIGINAL cable channel numbers
         self.spin_channel = QtWidgets.QSpinBox()
-        self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
-        self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setRange(
+            self._local_to_orig(self._di0),
+            self._local_to_orig(max(self._di1 - 1, self._di0))
+        )
+        self.spin_channel.setValue(self._local_to_orig(self._cur_ch))
+        self.spin_channel.setSingleStep(self._stride)
+        self.spin_channel.setMinimumWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_channel.setToolTip("Jump to channel index")
+        self.spin_channel.setToolTip("Original cable channel number")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
 
         # --- Parameter bar ---
@@ -323,16 +339,19 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self.plot_widget.setRange(
           xRange=(t0_s, t1_s + dt_r), yRange=(y0, y1 + df_r), padding=0)
 
+        _stride   = int(self.dataset.channel_stride or 1)
+        _offset   = int(self.dataset.channel_offset or 0)
+        ch_orig   = ch * _stride + _offset
         self.setWindowTitle(
             f"Spectrogram — Event [{self.ann.id}]  "
-            f"Channel {ch} ({dist:.0f} m)  "
+            f"Channel {ch_orig} ({dist:.0f} m)  "
             f"t={self.ann.t0:.2f}–{self.ann.t1:.2f} s"
         )
 
     def _on_scroll(self, val: int):
-        # Sync spinbox without re-triggering _on_channel_spinbox
+        # Sync spinbox to original cable channel without re-triggering callback
         self.spin_channel.blockSignals(True)
-        self.spin_channel.setValue(val)
+        self.spin_channel.setValue(self._local_to_orig(val))
         self.spin_channel.blockSignals(False)
         self._plot(val, update_range=False)
 
@@ -343,9 +362,9 @@ class SpectrogramDialog(QtWidgets.QDialog):
         self._plot(self._cur_ch)
 
     def _on_channel_spinbox(self, val: int):
-        """Jump directly to a channel by typing its index."""
-        val = max(self._di0, min(val, self._di1 - 1))
-        self.scrollbar.setValue(val)  # triggers _on_scroll
+        """Jump to a channel by typing its ORIGINAL cable channel number."""
+        local = self._orig_to_local(val)
+        self.scrollbar.setValue(local)  # triggers _on_scroll
 
     def _on_apply(self):
         self._cache.clear()
@@ -658,6 +677,8 @@ class SignalDialog(QtWidgets.QDialog):
         self._di0     = di0
         self._di1     = di1
         self._cur_ch  = (di0 + di1) // 2
+        self._stride  = int(dataset.channel_stride or 1)
+        self._offset  = int(dataset.channel_offset or 0)
         # Fixed channels: list of (channel_index, Tab10_color)
         self._fixed_chs: list = []
 
@@ -672,11 +693,15 @@ class SignalDialog(QtWidgets.QDialog):
         # Channel spinbox — created here so it is available to both the top
         # control bar and the scrollbar sync callbacks defined later.
         self.spin_channel = QtWidgets.QSpinBox()
-        self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
-        self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setRange(
+            self._di0 * self._stride + self._offset,
+            max(self._di1 - 1, self._di0) * self._stride + self._offset
+        )
+        self.spin_channel.setValue(self._cur_ch * self._stride + self._offset)
+        self.spin_channel.setSingleStep(self._stride)
+        self.spin_channel.setMinimumWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_channel.setToolTip("Jump to channel index")
+        self.spin_channel.setToolTip("Original cable channel number")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
 
         # --- Control bar ---
@@ -813,22 +838,28 @@ class SignalDialog(QtWidgets.QDialog):
                 f"CH{fch}" for fch, _ in self._fixed_chs
             ) if self._fixed_chs else ""
         )
-        self.lbl_info.setText(f"Channel: {ch}  ({dist:.0f} m){fixed_info}")
+        _stride = int(self.dataset.channel_stride or 1)
+        _offset = int(self.dataset.channel_offset or 0)
+        ch_orig = ch * _stride + _offset
+        self.lbl_info.setText(f"Channel: {ch_orig}  ({dist:.0f} m){fixed_info}")
         self.setWindowTitle(
             f"Signal (time domain) — Event [{self.ann.id}]  "
-            f"Channel {ch}  ({dist:.0f} m)"
+            f"Channel {ch_orig}  ({dist:.0f} m)"
         )
 
     def _on_scroll(self, val: int):
         self.spin_channel.blockSignals(True)
-        self.spin_channel.setValue(val)
+        self.spin_channel.setValue(val * self._stride + self._offset)
         self.spin_channel.blockSignals(False)
         self._plot(val)
 
     def _on_channel_spinbox(self, val: int):
-        """Jump directly to a channel by typing its index."""
-        val = max(self._di0, min(val, self._di1 - 1))
-        self.scrollbar.setValue(val)
+        """Jump to a channel by typing its ORIGINAL cable channel number."""
+        local = max(self._di0, min(
+            round((val - self._offset) / self._stride),
+            self._di1 - 1
+        ))
+        self.scrollbar.setValue(local)
 
     def _on_apply_y(self):
         self.plot_widget.setYRange(
@@ -931,6 +962,8 @@ class SignalFreqDialog(QtWidgets.QDialog):
         self._di0     = di0
         self._di1     = di1
         self._cur_ch  = (di0 + di1) // 2
+        self._stride  = int(dataset.channel_stride or 1)
+        self._offset  = int(dataset.channel_offset or 0)
         self._fixed_chs: list = []
         self._last_scale: str = "dB (log)"
 
@@ -1135,22 +1168,28 @@ class SignalFreqDialog(QtWidgets.QDialog):
             "  |  Fixed: " + ", ".join(f"CH{fch}" for fch, _ in self._fixed_chs)
             if self._fixed_chs else ""
         )
-        self.lbl_info.setText(f"Channel: {ch}  ({dist:.0f} m){fixed_info}")
+        _stride = int(self.dataset.channel_stride or 1)
+        _offset = int(self.dataset.channel_offset or 0)
+        ch_orig = ch * _stride + _offset
+        self.lbl_info.setText(f"Channel: {ch_orig}  ({dist:.0f} m){fixed_info}")
         self.setWindowTitle(
             f"Signal (frequency domain) - Event [{self.ann.id}]  "
-            f"Channel {ch}  ({dist:.0f} m)"
+            f"Channel {ch_orig}  ({dist:.0f} m)"
         )
 
     def _on_scroll(self, val: int):
         self.spin_channel.blockSignals(True)
-        self.spin_channel.setValue(val)
+        self.spin_channel.setValue(val * self._stride + self._offset)
         self.spin_channel.blockSignals(False)
         self._plot(val)
 
     def _on_channel_spinbox(self, val: int):
-        """Jump directly to a channel by typing its index."""
-        val = max(self._di0, min(val, self._di1 - 1))
-        self.scrollbar.setValue(val)
+        """Jump to a channel by typing its ORIGINAL cable channel number."""
+        local = max(self._di0, min(
+            round((val - self._offset) / self._stride),
+            self._di1 - 1
+        ))
+        self.scrollbar.setValue(local)
 
     def _on_scale_changed(self, _index: int):
         self._plot(self._cur_ch)
@@ -1229,6 +1268,8 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         self._di0     = di0
         self._di1     = di1
         self._cur_ch  = (di0 + di1) // 2
+        self._stride  = int(dataset.channel_stride or 1)
+        self._offset  = int(dataset.channel_offset or 0)
         self._fixed_chs: list = []
 
         self._build_ui()
@@ -1242,11 +1283,15 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
         # Channel spinbox — created here so it is available to both the top
         # control bar and the scrollbar sync callbacks defined later.
         self.spin_channel = QtWidgets.QSpinBox()
-        self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
-        self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setRange(
+            self._di0 * self._stride + self._offset,
+            max(self._di1 - 1, self._di0) * self._stride + self._offset
+        )
+        self.spin_channel.setValue(self._cur_ch * self._stride + self._offset)
+        self.spin_channel.setSingleStep(self._stride)
+        self.spin_channel.setMinimumWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_channel.setToolTip("Jump to channel index")
+        self.spin_channel.setToolTip("Original cable channel number")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
 
         ctrl_row = QtWidgets.QHBoxLayout()
@@ -1373,22 +1418,28 @@ class SignalEnvelopeDialog(QtWidgets.QDialog):
             "  |  Fixed: " + ", ".join(f"CH{fch}" for fch, _ in self._fixed_chs)
             if self._fixed_chs else ""
         )
-        self.lbl_info.setText(f"Channel: {ch}  ({dist:.0f} m){fixed_info}")
+        _stride = int(self.dataset.channel_stride or 1)
+        _offset = int(self.dataset.channel_offset or 0)
+        ch_orig = ch * _stride + _offset
+        self.lbl_info.setText(f"Channel: {ch_orig}  ({dist:.0f} m){fixed_info}")
         self.setWindowTitle(
             f"Signal (envelope) - Event [{self.ann.id}]  "
-            f"Channel {ch}  ({dist:.0f} m)"
+            f"Channel {ch_orig}  ({dist:.0f} m)"
         )
 
     def _on_scroll(self, val: int):
         self.spin_channel.blockSignals(True)
-        self.spin_channel.setValue(val)
+        self.spin_channel.setValue(val * self._stride + self._offset)
         self.spin_channel.blockSignals(False)
         self._plot(val)
 
     def _on_channel_spinbox(self, val: int):
-        """Jump directly to a channel by typing its index."""
-        val = max(self._di0, min(val, self._di1 - 1))
-        self.scrollbar.setValue(val)
+        """Jump to a channel by typing its ORIGINAL cable channel number."""
+        local = max(self._di0, min(
+            round((val - self._offset) / self._stride),
+            self._di1 - 1
+        ))
+        self.scrollbar.setValue(local)
 
     def _on_apply_y(self):
         self.plot_widget.setYRange(self.sb_ymin.value(), self.sb_ymax.value(), padding=0)
@@ -1470,6 +1521,8 @@ class SignalPhaseDialog(QtWidgets.QDialog):
         self._di0     = di0
         self._di1     = di1
         self._cur_ch  = (di0 + di1) // 2
+        self._stride  = int(dataset.channel_stride or 1)
+        self._offset  = int(dataset.channel_offset or 0)
         self._fixed_chs: list = []
 
         self._build_ui()
@@ -1483,11 +1536,15 @@ class SignalPhaseDialog(QtWidgets.QDialog):
         # Channel spinbox — created here so it is available to both the top
         # control bar and the scrollbar sync callbacks defined later.
         self.spin_channel = QtWidgets.QSpinBox()
-        self.spin_channel.setRange(self._di0, max(self._di1 - 1, self._di0))
-        self.spin_channel.setValue(self._cur_ch)
-        self.spin_channel.setMinimumWidth(117) # self.spin_channel.setFixedWidth(117)
+        self.spin_channel.setRange(
+            self._di0 * self._stride + self._offset,
+            max(self._di1 - 1, self._di0) * self._stride + self._offset
+        )
+        self.spin_channel.setValue(self._cur_ch * self._stride + self._offset)
+        self.spin_channel.setSingleStep(self._stride)
+        self.spin_channel.setMinimumWidth(117)
         self.spin_channel.setAlignment(QtCore.Qt.AlignCenter)
-        self.spin_channel.setToolTip("Jump to channel index")
+        self.spin_channel.setToolTip("Original cable channel number")
         self.spin_channel.valueChanged.connect(self._on_channel_spinbox)
 
         ctrl_row = QtWidgets.QHBoxLayout()
@@ -1614,22 +1671,28 @@ class SignalPhaseDialog(QtWidgets.QDialog):
             "  |  Fixed: " + ", ".join(f"CH{fch}" for fch, _ in self._fixed_chs)
             if self._fixed_chs else ""
         )
-        self.lbl_info.setText(f"Channel: {ch}  ({dist:.0f} m){fixed_info}")
+        _stride = int(self.dataset.channel_stride or 1)
+        _offset = int(self.dataset.channel_offset or 0)
+        ch_orig = ch * _stride + _offset
+        self.lbl_info.setText(f"Channel: {ch_orig}  ({dist:.0f} m){fixed_info}")
         self.setWindowTitle(
             f"Signal (phase) - Event [{self.ann.id}]  "
-            f"Channel {ch}  ({dist:.0f} m)"
+            f"Channel {ch_orig}  ({dist:.0f} m)"
         )
 
     def _on_scroll(self, val: int):
         self.spin_channel.blockSignals(True)
-        self.spin_channel.setValue(val)
+        self.spin_channel.setValue(val * self._stride + self._offset)
         self.spin_channel.blockSignals(False)
         self._plot(val)
 
     def _on_channel_spinbox(self, val: int):
-        """Jump directly to a channel by typing its index."""
-        val = max(self._di0, min(val, self._di1 - 1))
-        self.scrollbar.setValue(val)
+        """Jump to a channel by typing its ORIGINAL cable channel number."""
+        local = max(self._di0, min(
+            round((val - self._offset) / self._stride),
+            self._di1 - 1
+        ))
+        self.scrollbar.setValue(local)
 
     def _on_apply_y(self):
         self.plot_widget.setYRange(self.sb_ymin.value(), self.sb_ymax.value(), padding=0)

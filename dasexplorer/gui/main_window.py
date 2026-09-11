@@ -1501,12 +1501,15 @@ class MainWindow(QtWidgets.QMainWindow):
             model.dist_m = self.dataset.dist_m
             for ann in model.annotations:
                 if hasattr(ann, 't0') and hasattr(ann, 'd0'):
-                    ti0, ti1, di0, di1 = AnnotationModel.compute_indices(
+                    ti0, ti1, di0_local, di1_local = AnnotationModel.compute_indices(
                         ann.t0, ann.t1, ann.d0, ann.d1,
                         self.dataset.time_s, self.dataset.dist_m,
                     )
+                    _stride = int(self.dataset.channel_stride or 1)
+                    _offset = int(self.dataset.channel_offset or 0)
                     ann.ti0, ann.ti1 = ti0, ti1
-                    ann.di0, ann.di1 = di0, di1
+                    ann.di0 = di0_local * _stride + _offset
+                    ann.di1 = di1_local * _stride + _offset
 
     def _reload_current_view(self) -> None:
         """Refresh waterfall and status bar after an in-memory stride change."""
@@ -2041,15 +2044,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if event_id is None:
             return
         ds = self.dataset
-        cx_ti, cy_di = AnnotationModel.coord_to_index(cx, cy, ds.time_s, ds.dist_m)
+        cx_ti, cy_di_local = AnnotationModel.coord_to_index(cx, cy, ds.time_s, ds.dist_m)
         w_ti = int(w / (ds.time_s[1] - ds.time_s[0])) if len(ds.time_s) > 1 else 0
         h_di = int(h / (ds.dist_m[1] - ds.dist_m[0])) if len(ds.dist_m) > 1 else 0
+        _stride  = int(ds.channel_stride or 1)
+        _offset  = int(ds.channel_offset or 0)
+        cy_di    = cy_di_local * _stride + _offset
+        nx_original = ds.n_dist * _stride + _offset
         start_dt = ds.start_datetime_utc.isoformat() if ds.start_datetime_utc else ""
         ann = OBBAnnotation(
             ann_type="obb", id=event_id, comment=comment,
             cx_t=cx, cy_d=cy, w_t=w, h_d=h, angle_deg=angle_deg,
             cx_ti=cx_ti, cy_di=cy_di, w_ti=w_ti, h_di=h_di,
-            nt=ds.n_time, nx=ds.n_dist,
+            nt=ds.n_time, nx=nx_original,
             downsample=ds.channel_stride or 1,
             start_datetime_utc=start_dt,
         )
@@ -2067,16 +2074,20 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         import json
         ds = self.dataset
+        _stride  = int(ds.channel_stride or 1)
+        _offset  = int(ds.channel_offset or 0)
+        nx_original = ds.n_dist * _stride + _offset
         pts_ti = [AnnotationModel.coord_to_index(t, d, ds.time_s, ds.dist_m)[0]
                   for t, d in zip(pts_t, pts_d)]
-        pts_di = [AnnotationModel.coord_to_index(t, d, ds.time_s, ds.dist_m)[1]
-                  for t, d in zip(pts_t, pts_d)]
+        pts_di_local = [AnnotationModel.coord_to_index(t, d, ds.time_s, ds.dist_m)[1]
+                        for t, d in zip(pts_t, pts_d)]
+        pts_di = [di * _stride + _offset for di in pts_di_local]
         start_dt = ds.start_datetime_utc.isoformat() if ds.start_datetime_utc else ""
         ann = KeypointAnnotation(
             ann_type="kp", id=event_id, comment=comment,
             kp_t=json.dumps(pts_t), kp_d=json.dumps(pts_d),
             kp_ti=json.dumps(pts_ti), kp_di=json.dumps(pts_di),
-            nt=ds.n_time, nx=ds.n_dist,
+            nt=ds.n_time, nx=nx_original,
             downsample=ds.channel_stride or 1,
             start_datetime_utc=start_dt,
         )
@@ -2094,16 +2105,20 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         import json
         ds = self.dataset
+        _stride  = int(ds.channel_stride or 1)
+        _offset  = int(ds.channel_offset or 0)
+        nx_original = ds.n_dist * _stride + _offset
         pts_ti = [AnnotationModel.coord_to_index(t, d, ds.time_s, ds.dist_m)[0]
                   for t, d in zip(pts_t, pts_d)]
-        pts_di = [AnnotationModel.coord_to_index(t, d, ds.time_s, ds.dist_m)[1]
-                  for t, d in zip(pts_t, pts_d)]
+        pts_di_local = [AnnotationModel.coord_to_index(t, d, ds.time_s, ds.dist_m)[1]
+                        for t, d in zip(pts_t, pts_d)]
+        pts_di = [di * _stride + _offset for di in pts_di_local]
         start_dt = ds.start_datetime_utc.isoformat() if ds.start_datetime_utc else ""
         ann = LineAnnotation(
             ann_type="lin", id=event_id, comment=comment,
             pts_t=json.dumps(pts_t), pts_d=json.dumps(pts_d),
             pts_ti=json.dumps(pts_ti), pts_di=json.dumps(pts_di),
-            nt=ds.n_time, nx=ds.n_dist,
+            nt=ds.n_time, nx=nx_original,
             downsample=ds.channel_stride or 1,
             start_datetime_utc=start_dt,
         )
