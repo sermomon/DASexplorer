@@ -917,3 +917,508 @@ class DASannotations:
 
     def __len__(self) -> int:
         return self.n_bbox + self.n_obb + self.n_kp + self.n_line
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DASxarray — xarray-based DAS accessor (future replacement for DASdataset)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# This class implements the same processing API as DASdataset but is built
+# on top of xarray.DataArray. It is registered as a DataArray accessor under
+# the namespace ".das", enabling fluent method chaining:
+#
+#   da = DASxarray.from_dataset(ds)
+#   result = da.das.detrend().bandpass(10, 30).fk_filter(1400, 3500, 10, 30)
+#   result.to_netcdf("output.nc")      # xarray native
+#   result.das.save_npz("output.npz")  # DASexplorer format
+#
+# Migration path: when DASxarray is feature-complete and tested, rename it
+# to DASdataset and retire the current DASdataset (keep as _DASdataset_legacy
+# for backward compat). See the TODO above DASdataset for details.
+
+try:
+    import xarray as xr
+
+    @xr.register_dataarray_accessor("das")
+    class DASxarray:
+        """xarray DataArray accessor for DAS data processing.
+
+        Registered under the ``.das`` namespace on any ``xr.DataArray``.
+        Use :meth:`from_dataset` to create a DAS-aware DataArray from an
+        existing :class:`DASdataset`, or attach ``.das`` to any DataArray
+        with ``distance`` and ``time`` dimensions.
+
+        Processing methods return ``self`` (the accessor) so calls can be
+        chained without repeating ``.das``:
+
+        >>> da = DASxarray.from_dataset(ds)
+        >>> result = da.das.detrend().bandpass(10, 80).normalize()
+        >>> result._obj.to_netcdf("output.nc")
+        """
+
+        def __init__(self, xarray_obj: "xr.DataArray") -> None:
+            self._obj = xarray_obj
+
+        # ── Internal helpers ──────────────────────────────────────────────────
+
+        def _replace(self, new_data: "np.ndarray",
+                     processing_tag: str) -> "DASxarray":
+            """Return a new accessor wrapping a DataArray with updated data."""
+            history = list(self._obj.attrs.get("processing", []))
+            history.append(processing_tag)
+            new_attrs = dict(self._obj.attrs)
+            new_attrs["processing"] = history
+            new_da = self._obj.copy(data=new_data)
+            new_da.attrs.update(new_attrs)
+            return new_da.das
+
+        @property
+        def _tr(self) -> "np.ndarray":
+            """Raw numpy array (n_channels, n_time)."""
+            return self._obj.values
+
+        @property
+        def _fs_hz(self) -> float:
+            return float(self._obj.attrs.get("fs_hz", 1.0))
+
+        @property
+        def _stride(self) -> int:
+            return int(self._obj.attrs.get("channel_stride", 1) or 1)
+
+        @property
+        def _offset(self) -> int:
+            return int(self._obj.attrs.get("channel_offset", 0) or 0)
+
+        # ── Properties ────────────────────────────────────────────────────────
+
+        @property
+        def dx(self) -> float:
+            """Channel spacing [m]."""
+            dist = self._obj.coords.get("distance")
+            if dist is not None and len(dist) > 1:
+                return float(dist[1] - dist[0])
+            return 1.0
+
+        @property
+        def dt(self) -> float:
+            """Sampling interval [s] = 1 / fs_hz."""
+            return 1.0 / self._fs_hz
+
+        @property
+        def nyquist_hz(self) -> float:
+            """Nyquist frequency [Hz]."""
+            return self._fs_hz / 2.0
+
+        @property
+        def duration_s(self) -> float:
+            """Total duration [s]."""
+            t = self._obj.coords.get("time")
+            if t is not None and len(t) > 1:
+                return float(t[-1] - t[0])
+            return 0.0
+
+        @property
+        def cable_length_m(self) -> float:
+            """Spatial extent [m]."""
+            d = self._obj.coords.get("distance")
+            if d is not None and len(d) > 1:
+                return float(d[-1] - d[0])
+            return 0.0
+
+        @property
+        def n_channels(self) -> int:
+            return self._obj.sizes.get("distance", self._obj.shape[0])
+
+        @property
+        def n_time(self) -> int:
+            return self._obj.sizes.get("time", self._obj.shape[1])
+
+        @property
+        def processing(self) -> list:
+            """List of processing steps applied."""
+            return list(self._obj.attrs.get("processing", []))
+
+        # ── Constructors ──────────────────────────────────────────────────────
+
+        @classmethod
+        def from_dataset(cls, ds) -> "xr.DataArray":
+            """Create a DAS-aware DataArray from a DASdataset.
+
+            Parameters
+            ----------
+            ds : DASdataset
+                Source dataset.
+
+            Returns
+            -------
+            xr.DataArray
+                DataArray with dims (``distance``, ``time``) and ``.das``
+                accessor attached automatically.
+            """
+            attrs = {
+                "fs_hz":              float(ds.fs_hz),
+                "units":              ds.units or "",
+                "reader":             ds.reader or "",
+                "filename":           ds.filename or "",
+                "channel_stride":     int(ds.channel_stride or 1),
+                "channel_offset":     int(ds.channel_offset or 0),
+                "start_datetime_utc": str(ds.start_datetime_utc or ""),
+                "processing":         [],
+            }
+            attrs.update(ds.metadata or {})
+            return xr.DataArray(
+                data=ds.tr.copy(),
+                dims=["distance", "time"],
+                coords={
+                    "distance": ("distance", ds.dist_m, {"units": "m"}),
+                    "time":     ("time",     ds.time_s, {"units": "s"}),
+                },
+                attrs=attrs,
+                name="strain_rate",
+            )
+
+        # ── Processing — returns self for chaining ────────────────────────────
+
+        def detrend(self, mode: str = "linear") -> "DASxarray":
+            """Remove trend from each channel along the time axis.
+
+            Parameters
+            ----------
+            mode : {'linear', 'constant'}
+                Default ``'linear'``.
+            """
+            from dasexplorer.core.processing import detrend as _detrend
+            return self._replace(
+                _detrend(self._tr, mode=mode),
+                f"detrend(mode={mode})"
+            )
+
+        def taper(self, alpha: float = 0.05,
+                  mode: str = "tukey") -> "DASxarray":
+            """Apply a tapering window to the time edges of each channel.
+
+            Parameters
+            ----------
+            alpha : float
+                Fraction tapered at each end. Default 0.05.
+            mode : {'tukey', 'hann', 'cosine'}
+                Default ``'tukey'``.
+            """
+            from dasexplorer.core.processing import taper as _taper
+            return self._replace(
+                _taper(self._tr, alpha=alpha, mode=mode),
+                f"taper(alpha={alpha},mode={mode})"
+            )
+
+        def bandpass(self, fmin: float, fmax: float,
+                     order: int = 5) -> "DASxarray":
+            """Apply a zero-phase Butterworth bandpass filter.
+
+            Parameters
+            ----------
+            fmin, fmax : float
+                Frequency band [Hz].
+            order : int
+                Filter order. Default 5.
+            """
+            from dasexplorer.core.processing import bandpass_filter
+            return self._replace(
+                bandpass_filter(self._tr, self._fs_hz, fmin, fmax, order),
+                f"bandpass({fmin},{fmax},order={order})"
+            )
+
+        def envelope(self) -> "DASxarray":
+            """Compute the Hilbert envelope (instantaneous amplitude)."""
+            from dasexplorer.core.processing import hilbert_envelope
+            return self._replace(hilbert_envelope(self._tr), "envelope")
+
+        def normalize(self, mode: str = "rms") -> "DASxarray":
+            """Normalize each channel.
+
+            Parameters
+            ----------
+            mode : {'rms', 'peak', 'zscore'}
+                Default ``'rms'``.
+            """
+            from dasexplorer.core.processing import normalize as _norm
+            return self._replace(
+                _norm(self._tr, mode=mode),
+                f"normalize(mode={mode})"
+            )
+
+        def fk_filter(self, c_min: float, c_max: float,
+                      fmin: float, fmax: float,
+                      tapering: bool = False,
+                      gaussian_sigma: float = 40.0) -> "DASxarray":
+            """Apply an F-K bandpass filter.
+
+            Parameters
+            ----------
+            c_min, c_max : float
+                Apparent velocity range [m/s].
+            fmin, fmax : float
+                Frequency range [Hz].
+            tapering : bool
+                Apply Tukey window before filtering. Default False.
+            gaussian_sigma : float
+                Gaussian smoothing sigma for filter edges. Default 40.
+            """
+            from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
+            fk = fk_filter_design(
+                trace_shape=self._tr.shape,
+                dx=self.dx / self._stride,
+                fs=self._fs_hz,
+                c_min=c_min, c_max=c_max,
+                fmin=fmin, fmax=fmax,
+                stride=self._stride,
+                gaussian_sigma=gaussian_sigma,
+            )
+            tr_fk = fk_filter_apply(self._tr, fk, tapering=tapering)
+            return self._replace(
+                tr_fk,
+                f"fk_filter(c={c_min}-{c_max},f={fmin}-{fmax})"
+            )
+
+        def downsample_time(self, factor: int = None,
+                            fs_target: float = None,
+                            mode: str = "decimate") -> "DASxarray":
+            """Temporally downsample the dataset.
+
+            Parameters
+            ----------
+            factor : int, optional
+                Decimation factor.
+            fs_target : float, optional
+                Target sampling frequency [Hz].
+            mode : {'decimate', 'simple'}
+                Default ``'decimate'`` (anti-aliasing filter).
+            """
+            import numpy as np
+            from dasexplorer.core.processing import downsample_signal
+            tr_d, fs_new, q = downsample_signal(
+                self._tr, self._fs_hz,
+                factor=factor, fs_target=fs_target, mode=mode
+            )
+            n_new   = tr_d.shape[1]
+            time_new = np.arange(n_new) / fs_new
+            new_attrs = dict(self._obj.attrs)
+            new_attrs["fs_hz"] = fs_new
+            new_attrs["downsample"] = (new_attrs.get("downsample", 1) or 1) * q
+            history = list(new_attrs.get("processing", []))
+            history.append(f"downsample_time(factor={q},mode={mode})")
+            new_attrs["processing"] = history
+            dist = (self._obj.coords["distance"].values
+                    if "distance" in self._obj.coords
+                    else np.arange(tr_d.shape[0]))
+            return xr.DataArray(
+                data=tr_d,
+                dims=["distance", "time"],
+                coords={
+                    "distance": ("distance", dist, {"units": "m"}),
+                    "time":     ("time", time_new, {"units": "s"}),
+                },
+                attrs=new_attrs,
+                name=self._obj.name,
+            ).das
+
+        def upsample_time(self, factor: int = None,
+                          fs_target: float = None,
+                          mode: str = "linear") -> "DASxarray":
+            """Temporally upsample the dataset.
+
+            Parameters
+            ----------
+            factor : int, optional
+                Upsampling factor.
+            fs_target : float, optional
+                Target sampling frequency [Hz].
+            mode : {'linear', 'cubic', 'fft'}
+                Default ``'linear'``.
+            """
+            import numpy as np
+            from dasexplorer.core.processing import upsample_signal
+            tr_u, fs_new, q = upsample_signal(
+                self._tr, self._fs_hz,
+                factor=factor, fs_target=fs_target, mode=mode
+            )
+            n_new    = tr_u.shape[1]
+            time_new = np.arange(n_new) / fs_new
+            new_attrs = dict(self._obj.attrs)
+            new_attrs["fs_hz"] = fs_new
+            history = list(new_attrs.get("processing", []))
+            history.append(f"upsample_time(factor={q},mode={mode})")
+            new_attrs["processing"] = history
+            dist = (self._obj.coords["distance"].values
+                    if "distance" in self._obj.coords
+                    else np.arange(tr_u.shape[0]))
+            return xr.DataArray(
+                data=tr_u,
+                dims=["distance", "time"],
+                coords={
+                    "distance": ("distance", dist, {"units": "m"}),
+                    "time":     ("time", time_new, {"units": "s"}),
+                },
+                attrs=new_attrs,
+                name=self._obj.name,
+            ).das
+
+        # ── Representation ────────────────────────────────────────────────────
+
+        def msr(self, bands: list, percentile: float = 95.0,
+                order: int = 5) -> "MSRcube":
+            """Compute the Multispectral Representation (MSR) spectral cube.
+
+            Parameters
+            ----------
+            bands : list of (fmin, fmax) tuples
+                Frequency bands [Hz].
+            percentile : float
+                Per-band normalisation percentile. Default 95.
+            order : int
+                Butterworth filter order. Default 5.
+
+            Returns
+            -------
+            MSRcube
+            """
+            from dasexplorer.core.msr import multispectral_representation, MSRcube
+            dist = (self._obj.coords["distance"].values
+                    if "distance" in self._obj.coords else None)
+            time = (self._obj.coords["time"].values
+                    if "time" in self._obj.coords else None)
+            array = multispectral_representation(
+                self._tr, self._fs_hz,
+                bands=bands, percentile=percentile, order=order,
+            )
+            return MSRcube(
+                array=array, bands=bands,
+                dist_m=dist, time_s=time,
+                fs_hz=self._fs_hz, percentile=percentile,
+            )
+
+        def rgb(self, r_band: tuple = (1.0, 5.0),
+                g_band: tuple = (5.0, 15.0),
+                b_band: tuple = (15.0, 40.0),
+                percentile: float = 90.0,
+                order: int = 5) -> "np.ndarray":
+            """Compute the RGB multispectral composite.
+
+            Parameters
+            ----------
+            r_band, g_band, b_band : (fmin, fmax)
+                Frequency bands [Hz].
+            percentile : float
+                Colour-scale normalisation percentile. Default 90.
+
+            Returns
+            -------
+            np.ndarray
+                RGB image, shape (n_channels, n_time, 3), dtype uint8.
+            """
+            from dasexplorer.core.rgb import compute_rgb_composite
+            return compute_rgb_composite(
+                self._tr, self._fs_hz,
+                r_band=r_band, g_band=g_band, b_band=b_band,
+                percentile=percentile, order=order,
+            )
+
+        # ── Export ────────────────────────────────────────────────────────────
+
+        def save_npz(self, path: str) -> "DASxarray":
+            """Save to a compressed NumPy archive (.npz).
+
+            Parameters
+            ----------
+            path : str
+                Output file path.
+
+            Returns
+            -------
+            DASxarray
+                Self, for method chaining.
+            """
+            import os, numpy as np
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            dist = (self._obj.coords["distance"].values
+                    if "distance" in self._obj.coords else np.array([]))
+            time = (self._obj.coords["time"].values
+                    if "time" in self._obj.coords else np.array([]))
+            np.savez_compressed(
+                path,
+                tr=self._tr,
+                dist_m=dist,
+                time_s=time,
+                fs_hz=np.float32(self._fs_hz),
+                units=self._obj.attrs.get("units", ""),
+                reader=self._obj.attrs.get("reader", ""),
+                filename=self._obj.attrs.get("filename", ""),
+                start_datetime_utc=str(
+                    self._obj.attrs.get("start_datetime_utc", "")
+                ),
+            )
+            return self
+
+        def save_mat(self, path: str) -> "DASxarray":
+            """Save to a MATLAB file (.mat).
+
+            Parameters
+            ----------
+            path : str
+                Output file path.
+
+            Returns
+            -------
+            DASxarray
+                Self, for method chaining.
+            """
+            import os, numpy as np, scipy.io as sio
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            dist = (self._obj.coords["distance"].values
+                    if "distance" in self._obj.coords else np.array([]))
+            time = (self._obj.coords["time"].values
+                    if "time" in self._obj.coords else np.array([]))
+            sio.savemat(
+                path,
+                {
+                    "tr":                 self._tr,
+                    "dist_m":             dist,
+                    "time_s":             time,
+                    "fs_hz":              float(self._fs_hz),
+                    "units":              self._obj.attrs.get("units", ""),
+                    "reader":             self._obj.attrs.get("reader", ""),
+                    "filename":           self._obj.attrs.get("filename", ""),
+                    "start_datetime_utc": str(
+                        self._obj.attrs.get("start_datetime_utc", "")
+                    ),
+                },
+                do_compression=True,
+            )
+            return self
+
+        def __repr__(self) -> str:
+            proc = self.processing
+            proc_str = " → ".join(proc) if proc else "raw"
+            return (
+                f"DASxarray("
+                f"shape=({self.n_channels}, {self.n_time}), "
+                f"fs={self._fs_hz:.1f}Hz, "
+                f"dx={self.dx:.1f}m, "
+                f"duration={self.duration_s:.2f}s, "
+                f"processing=[{proc_str}])"
+            )
+
+except ImportError:
+    # xarray is optional — DASxarray is unavailable but nothing breaks
+    class DASxarray:  # type: ignore
+        """Placeholder — install xarray to use DASxarray."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )
+        @classmethod
+        def from_dataset(cls, ds):
+            raise ImportError(
+                "DASxarray requires xarray. "
+                "Install with: pip install xarray"
+            )

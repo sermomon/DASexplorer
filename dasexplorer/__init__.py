@@ -1,10 +1,11 @@
 from dasexplorer.version import __version__
 
 # ── Public API ────────────────────────────────────────────────────────────────
-from dasexplorer.api import DASdataset, DASannotations
+from dasexplorer.api import DASdataset, DASannotations, DASxarray
 from dasexplorer.core.processing import (
-    bandpass_filter, hilbert_envelope, downsample_signal, upsample_signal, detrend, 
-    taper, normalize,
+    bandpass_filter, hilbert_envelope,
+    downsample_signal, upsample_signal,
+    detrend, taper, normalize,
 )
 from dasexplorer.core.fk_filter import fk_filter_design, fk_filter_apply
 from dasexplorer.core.rgb import compute_rgb_composite
@@ -24,6 +25,7 @@ __all__ = [
     # High-level API
     "DASdataset",
     "DASannotations",
+    "DASxarray",
     # Processing
     "bandpass_filter",
     "hilbert_envelope",
