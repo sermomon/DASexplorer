@@ -37,6 +37,14 @@ class _DASRecord:
         Interrogator type used to acquire the data (e.g. "hdas2.5", "optodas").
     channel_stride : int, optional
         Channel stride applied before loading (1 or None = no subsampling).
+    coords_lon, coords_lat : np.ndarray, optional
+        Geographic coordinates [degrees, WGS84] interpolated to channel axis.
+    coords_z : np.ndarray, optional
+        Elevation or depth [m] at each channel. None if 2D geometry.
+    coords_dist : np.ndarray, optional
+        Cumulative geodetic distance along the cable [m].
+    crs : str, optional
+        Coordinate reference system. Always "EPSG:4326" when set.
     downsample : int, optional
         Cumulative temporal decimation factor applied via downsample_time().
         None means no temporal downsampling has been applied.
@@ -60,6 +68,12 @@ class _DASRecord:
     reader: Optional[str] = None
     channel_stride: Optional[int] = None
     downsample:     Optional[int] = None
+    # Geographic coordinates (WGS84, interpolated to channel axis)
+    coords_lon:  Optional[object] = None  # np.ndarray, longitude [deg]
+    coords_lat:  Optional[object] = None  # np.ndarray, latitude [deg]
+    coords_z:    Optional[object] = None  # np.ndarray, elev/depth [m]
+    coords_dist: Optional[object] = None  # np.ndarray, geodetic dist [m]
+    crs:         Optional[str]    = None  # e.g. "EPSG:4326"
     # Number of channels from the cable start to the first loaded channel,
     # at stride=1. Used to convert local array indices to absolute cable indices.
     # channel_offset = 0 means the array starts at the beginning of the cable.

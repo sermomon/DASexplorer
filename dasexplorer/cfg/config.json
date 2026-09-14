@@ -35,8 +35,14 @@
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0,
             "read_dmin_m": null,
-            "read_dmax_m": null,
-            "reader": "hdas2.5_v1"
+            "read_dmax_m": 30000.0,
+            "reader": "hdas2.5_v1",
+            "fiber_geometry": {
+                "path": "C:/Users/sermomon/Desktop/f/alme.geojson",
+                "format": "auto",
+                "load_on_open": true,
+                "geometry_offset_m": 5000.0
+            }
         },
         "optasense_v1": {
             "label": "Luna Inn. OptaSense (.h5) OOI-RCA 2021",
@@ -72,7 +78,13 @@
             "num_files": 1,
             "read_dmin_m": 20000.0,
             "read_dmax_m": 65000.0,
-            "reader": "optasense_v1"
+            "reader": "optasense_v1",
+            "fiber_geometry": {
+                "path": null,
+                "format": "auto",
+                "load_on_open": false,
+                "geometry_offset_m": 0.0
+            }
         },
         "silixa_v1": {
             "label": "Silixa iDAS (.tdms) OOI-RCA 2021",
@@ -108,7 +120,13 @@
             "read_dmin_m": null,
             "read_dmax_m": null,
             "reader": "silixa_v1",
-            "num_files": 1
+            "num_files": 1,
+            "fiber_geometry": {
+                "path": null,
+                "format": "auto",
+                "load_on_open": false,
+                "geometry_offset_m": 0.0
+            }
         },
         "optodas_v1": {
             "label": "ASN OptoDAS (.hdf5) OOI-RCA 2024",
@@ -144,7 +162,13 @@
             "read_dmin_m": null,
             "read_dmax_m": null,
             "reader": "optodas_v1",
-            "num_files": 1
+            "num_files": 1,
+            "fiber_geometry": {
+                "path": null,
+                "format": "auto",
+                "load_on_open": false,
+                "geometry_offset_m": 0.0
+            }
         },
         "svalbard_v1": {
             "label": "ASN OptoDAS (.mat) Svalbard-2020",
@@ -180,7 +204,13 @@
             "read_dmin_m": null,
             "read_dmax_m": null,
             "reader": "svalbard_v1",
-            "num_files": 1
+            "num_files": 1,
+            "fiber_geometry": {
+                "path": null,
+                "format": "auto",
+                "load_on_open": false,
+                "geometry_offset_m": 0.0
+            }
         }
     },
     "ui": {
@@ -190,10 +220,26 @@
         "left_panel_scroll": false,
         "compact_spinboxes": false,
         "annotation_colors": {
-            "bbox": [255,255,255],
-            "obb": [255,255,255],
-            "kp": [255,255,255],
-            "line": [255,255,255]
+            "bbox": [
+                255,
+                255,
+                255
+            ],
+            "obb": [
+                255,
+                255,
+                255
+            ],
+            "kp": [
+                255,
+                255,
+                255
+            ],
+            "line": [
+                255,
+                255,
+                255
+            ]
         }
     }
 }

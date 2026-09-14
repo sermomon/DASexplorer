@@ -120,6 +120,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._build_status_bar()
 
+        # Fiber Geometry window (hidden by default)
+        self.fiber_map_win = self._build_fiber_map_win()
+        self.fiber_map_win.hide()
+
         # Connect waterfall draw signals — must be done after all three
         # waterfall widgets are created (they live inside _build_main_area)
         for wf in self._waterfalls():
@@ -179,6 +183,12 @@ class MainWindow(QtWidgets.QMainWindow):
         act_full_view.triggered.connect(self._on_menu_full_view)
         act_refresh_layout = menu_view.addAction("Refresh Layout")
         act_refresh_layout.triggered.connect(self._on_menu_refresh)
+        menu_view.addSeparator()
+        act_fiber_map = menu_view.addAction("Fiber Geometry (Map)")
+        act_fiber_map.setCheckable(True)
+        act_fiber_map.setChecked(False)
+        act_fiber_map.triggered.connect(self._on_toggle_fiber_map)
+        self._act_fiber_map = act_fiber_map
         menu_view.addSeparator()
         menu_theme = menu_view.addMenu("Theme")
         self._theme_action_group = QtWidgets.QActionGroup(self)
@@ -697,6 +707,251 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return self.tab_widget
 
+    # --- Fiber Geometry window ---
+
+    def _build_fiber_map_win(self) -> "QtWidgets.QWidget":
+        """Build the Fiber Geometry floating window."""
+        self._map_loaded           = False
+        self._map_line_color       = "#ff2222"
+        self._map_full_cable_color = "#444444"
+        self._geom_full            = None
+
+        win = QtWidgets.QWidget(
+            None,
+            QtCore.Qt.Window
+            | QtCore.Qt.WindowMinimizeButtonHint
+            | QtCore.Qt.WindowMaximizeButtonHint
+            | QtCore.Qt.WindowCloseButtonHint
+        )
+        win.setWindowTitle("Fiber Geometry (Map)")
+        win.setMinimumSize(500, 400)
+        win.resize(700, 550)
+
+        def _on_close(event):
+            self._on_fiber_map_closed()
+            event.accept()
+        win.closeEvent = _on_close
+
+        layout = QtWidgets.QVBoxLayout(win)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Toolbar
+        toolbar = QtWidgets.QHBoxLayout()
+        toolbar.setContentsMargins(6, 4, 6, 4)
+        toolbar.setSpacing(8)
+
+        self.btn_map_load_geom = QtWidgets.QPushButton("Load geometry")
+        self.btn_map_load_geom.setCheckable(True)
+        self.btn_map_load_geom.setChecked(False)
+        self.btn_map_load_geom.setMinimumWidth(110)
+        self.btn_map_load_geom.toggled.connect(self._on_map_load_geom_toggled)
+
+        self.btn_map_refresh = QtWidgets.QPushButton("Refresh")
+        self.btn_map_refresh.setMinimumWidth(70)
+        self.btn_map_refresh.clicked.connect(self._refresh_map)
+
+        lbl_basemap = QtWidgets.QLabel("Base:")
+        self.combo_basemap = QtWidgets.QComboBox()
+        self.combo_basemap.blockSignals(True)
+        try:
+            from dasexplorer.gui.map_view import BASEMAPS
+            for name in BASEMAPS:
+                self.combo_basemap.addItem(name)
+        except ImportError:
+            self.combo_basemap.addItem("OpenStreetMap")
+        osm_idx = self.combo_basemap.findText("OpenStreetMap")
+        if osm_idx >= 0:
+            self.combo_basemap.setCurrentIndex(osm_idx)
+        self.combo_basemap.blockSignals(False)
+        self.combo_basemap.currentTextChanged.connect(self._refresh_map)
+
+        lbl_sensed = QtWidgets.QLabel("Sensed:")
+        self.btn_map_color = QtWidgets.QPushButton()
+        self.btn_map_color.setFixedSize(24, 20)
+        self.btn_map_color.setStyleSheet(
+            "background-color: %s; border: 1px solid #555;" % self._map_line_color
+        )
+        self.btn_map_color.clicked.connect(self._on_map_color_pick)
+
+        lbl_full_color = QtWidgets.QLabel("Cable:")
+        self.btn_map_full_color = QtWidgets.QPushButton()
+        self.btn_map_full_color.setFixedSize(24, 20)
+        self.btn_map_full_color.setToolTip("Full cable geometry color")
+        self.btn_map_full_color.setStyleSheet(
+            "background-color: %s; border: 1px solid #555;" % self._map_full_cable_color
+        )
+        self.btn_map_full_color.clicked.connect(self._on_map_full_color_pick)
+
+        toolbar.addWidget(self.btn_map_load_geom)
+        toolbar.addWidget(self.btn_map_refresh)
+        toolbar.addSpacing(8)
+        toolbar.addWidget(lbl_basemap)
+        toolbar.addWidget(self.combo_basemap)
+        toolbar.addSpacing(8)
+        toolbar.addWidget(lbl_sensed)
+        toolbar.addWidget(self.btn_map_color)
+        toolbar.addSpacing(4)
+        toolbar.addWidget(lbl_full_color)
+        toolbar.addWidget(self.btn_map_full_color)
+        toolbar.addStretch()
+
+        toolbar_widget = QtWidgets.QWidget()
+        toolbar_widget.setLayout(toolbar)
+        layout.addWidget(toolbar_widget)
+
+        try:
+            from PyQt5.QtWebEngineWidgets import QWebEngineView
+            self.map_view = QWebEngineView()
+            self.map_view.setMinimumSize(400, 300)
+        except Exception as _web_err:
+            self.map_view = QtWidgets.QLabel(
+                "Map view error: %s. Install: pip install PyQtWebEngine" % _web_err
+            )
+            self.map_view.setAlignment(QtCore.Qt.AlignCenter)
+            self.map_view.setWordWrap(True)
+
+        layout.addWidget(self.map_view, 1)
+        return win
+
+    def _on_toggle_fiber_map(self, checked: bool) -> None:
+        if checked:
+            self.fiber_map_win.show()
+            self.fiber_map_win.raise_()
+            if not self._map_loaded:
+                self._refresh_map()
+        else:
+            self.fiber_map_win.hide()
+
+    def _on_fiber_map_closed(self) -> None:
+        self._act_fiber_map.setChecked(False)
+
+    def _on_map_load_geom_toggled(self, checked: bool) -> None:
+        self.btn_map_load_geom.setText(
+            "Geometry ON" if checked else "Load geometry"
+        )
+        if not checked:
+            self._geom_full = None
+        if checked and self.dataset is not None:
+            # Always reload _geom_full — it is reset to None on toggle off
+            self._load_geometry_from_config()
+        self._map_loaded = False
+        self._refresh_map()
+
+    def _load_geometry_from_config(self) -> None:
+        if self.dataset is None:
+            return
+        try:
+            from dasexplorer.core.config import get_all_profiles as _gap_geo, get_profile
+            from dasexplorer.core.geometry import (
+                load_geometry, interpolate_geometry_to_channels
+            )
+            import dataclasses
+            _pkeys_geo = list(_gap_geo().keys())
+            _pidx_geo  = self.combo_reader.currentIndex()
+            _pkey = _pkeys_geo[_pidx_geo] if _pidx_geo < len(_pkeys_geo) else _pkeys_geo[0]
+            _fg_cfg    = get_profile(_pkey).get("fiber_geometry", {})
+            _fg_path   = _fg_cfg.get("path") if isinstance(_fg_cfg, dict) else None
+            _fg_fmt    = _fg_cfg.get("format", "auto") if isinstance(_fg_cfg, dict) else "auto"
+            _fg_offset = float(_fg_cfg.get("geometry_offset_m", 0.0)) if isinstance(_fg_cfg, dict) else 0.0
+            if not _fg_path:
+                self._status_error("No geometry path set in profile configuration.")
+                return
+            geom    = load_geometry(_fg_path, fmt=_fg_fmt)
+            geom_ch = interpolate_geometry_to_channels(
+                geom, self.dataset.dist_m,
+                geometry_offset_m=_fg_offset
+            )
+            self._geom_full = geom
+            self.dataset = dataclasses.replace(
+                self.dataset,
+                coords_lon=geom_ch.lons,
+                coords_lat=geom_ch.lats,
+                coords_z=geom_ch.elevs,
+                coords_dist=geom_ch.dist_m,
+                crs=geom_ch.crs,
+            )
+            self.statusBar().showMessage(
+                f"Geometry loaded: {geom.n_points} points, "
+                f"{geom.total_length_m/1000:.1f} km", 5000
+            )
+        except FileNotFoundError as e:
+            self._status_error(f"Geometry file not found: {e}")
+        except Exception as e:
+            self._status_error(f"Geometry load error: {e}")
+
+    def _on_map_color_pick(self) -> None:
+        color = QtWidgets.QColorDialog.getColor(
+            QtGui.QColor(self._map_line_color), self, "Sensed cable color"
+        )
+        if color.isValid():
+            self._map_line_color = color.name()
+            self.btn_map_color.setStyleSheet(
+                "background-color: %s; border: 1px solid #555;" % self._map_line_color
+            )
+            self._map_loaded = False
+            self._refresh_map()
+
+    def _on_map_full_color_pick(self) -> None:
+        color = QtWidgets.QColorDialog.getColor(
+            QtGui.QColor(self._map_full_cable_color), self, "Full cable color"
+        )
+        if color.isValid():
+            self._map_full_cable_color = color.name()
+            self.btn_map_full_color.setStyleSheet(
+                "background-color: %s; border: 1px solid #555;" % self._map_full_cable_color
+            )
+            self._map_loaded = False
+            self._refresh_map()
+
+    def _refresh_map(self) -> None:
+        if not hasattr(self, "map_view"):
+            return
+        if isinstance(self.map_view, QtWidgets.QLabel):
+            return
+        try:
+            from dasexplorer.gui.map_view import (
+                build_fiber_map, build_no_geometry_html,
+            )
+            ds        = self.dataset
+            load_geom = self.btn_map_load_geom.isChecked()
+            has_geom  = (ds is not None and
+                         ds.coords_lon is not None and
+                         len(ds.coords_lon) > 1)
+
+            if load_geom and has_geom:
+                full_lons = (self._geom_full.lons
+                             if self._geom_full is not None
+                             else ds.coords_lon)
+                full_lats = (self._geom_full.lats
+                             if self._geom_full is not None
+                             else ds.coords_lat)
+                show_dual = self._geom_full is not None
+                html = build_fiber_map(
+                    coords_lon=full_lons,
+                    coords_lat=full_lats,
+                    coords_z=ds.coords_z,
+                    sensed_lon=ds.coords_lon if show_dual else None,
+                    sensed_lat=ds.coords_lat if show_dual else None,
+                    line_color=self._map_line_color,
+                    full_cable_color=self._map_full_cable_color,
+                    basemap=self.combo_basemap.currentText(),
+                )
+            else:
+                html = build_no_geometry_html()
+
+            self.map_view.setHtml(html)
+            self._map_loaded = True
+
+        except ImportError as e:
+            self.map_view.setHtml(
+                "<body style='background:#1e1e1e;color:#888;"
+                "font-family:sans-serif;padding:40px'>"
+                "Map requires folium: pip install folium<br>%s</body>" % e
+            )
+        except Exception as e:
+            self._status_error("Map error: %s" % e)
+
     # --- Status bar ---
 
     def _build_status_bar(self) -> None:
@@ -1075,6 +1330,17 @@ class MainWindow(QtWidgets.QMainWindow):
             kwargs["read_dmin_m"] = float(_rdmin)
         if _rdmax is not None:
             kwargs["read_dmax_m"] = float(_rdmax)
+        # Geometry loading — from profile config if load_on_open is True
+        _fg_cfg    = _profile_cfg.get("fiber_geometry", {})
+        _fg_path   = _fg_cfg.get("path") if isinstance(_fg_cfg, dict) else None
+        _fg_fmt    = _fg_cfg.get("format", "auto") if isinstance(_fg_cfg, dict) else "auto"
+        _fg_load   = bool(_fg_cfg.get("load_on_open", False)) if isinstance(_fg_cfg, dict) else False
+        _fg_offset = float(_fg_cfg.get("geometry_offset_m", 0.0)) if isinstance(_fg_cfg, dict) else 0.0
+        if _fg_path and _fg_load:
+            kwargs["geometry_path"]     = _fg_path
+            kwargs["geometry_fmt"]      = _fg_fmt
+            kwargs["geometry_offset_m"] = _fg_offset
+            kwargs["load_geometry"]     = True
         try:
             dataset = read_das_file(path, reader, **kwargs)
         except NotImplementedError as exc:
@@ -1087,6 +1353,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.lbl_file.setText("<i>No file loaded</i>")
             self.lbl_file.setStyleSheet(f"color: {theme.current()['qt_text_dim']};")
             return
+
+        # Store full geometry for dual-line map display
+        if _fg_path and _fg_load:
+            try:
+                from dasexplorer.core.geometry import load_geometry as _lg
+                self._geom_full = _lg(_fg_path, fmt=_fg_fmt)
+            except Exception:
+                self._geom_full = None
+        else:
+            self._geom_full = None
 
         self._current_data_path = path
         directory = os.path.dirname(path)

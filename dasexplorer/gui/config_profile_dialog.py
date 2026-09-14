@@ -115,6 +115,24 @@ _FIELDS = [
     ("default_view",     "Default view",
      "Which tab to show first after loading: 'raw' or 'fk'.",
      "str"),
+    # ---- Fiber geometry ----
+    ("fiber_geometry.path",         "Geometry file path",
+     "Path to a GeoJSON, Shapefile, CSV or TXT file with WGS84 coordinates.\n"
+     "Leave empty if no geometry is available.",
+     "str_or_null"),
+    ("fiber_geometry.format",       "Geometry format",
+     "File format: auto (detect from extension), geojson, shapefile, csv, txt.",
+     "str"),
+    ("fiber_geometry.load_on_open", "Load geometry on open",
+     "If true, load geometry automatically when a file is opened.\n"
+     "Set to false to avoid the loading delay (toggle via Fiber Map dock).",
+     "bool"),
+    ("fiber_geometry.geometry_offset_m", "Geometry offset [m]",
+     "Distance offset between the data origin (channel 0) and the geometry\n"
+     "origin (first GeoJSON point). Positive: geometry starts after data\n"
+     "origin (e.g. 5000 if cable has 5 km on land before the GeoJSON).\n"
+     "Negative: geometry starts before data origin.",
+     "float"),
 ]
 
 
@@ -146,6 +164,10 @@ def _parse_value(text: str, type_hint: str):
         if text.lower() in ("false", "0", "no"):
             return False
         raise ValueError(f"Expected true/false, got '{text}'")
+    if type_hint == "str_or_null":
+        if text.lower() in ("null", "none", ""):
+            return None
+        return text
     if type_hint == "str_list":
         # "  .bin , .hdf5 " → [".bin", ".hdf5"]
         return [x.strip() for x in text.split(",") if x.strip()]
@@ -300,7 +322,14 @@ class ConfigurationProfileDialog(QtWidgets.QDialog):
                 if val_item is None:
                     continue
                 key, _ = val_item.data(QtCore.Qt.UserRole)
-                val_item.setText(_format_value(full.get(key)))
+                # Handle nested keys (e.g. "fiber_geometry.path")
+                if "." in key:
+                    parent, child = key.split(".", 1)
+                    nested = full.get(parent, {})
+                    value  = nested.get(child) if isinstance(nested, dict) else None
+                else:
+                    value = full.get(key)
+                val_item.setText(_format_value(value))
                 val_item.setForeground(QtGui.QColor(theme.current()["qt_text"]))
 
         self.tab_widget.blockSignals(False)
@@ -418,7 +447,20 @@ class ConfigurationProfileDialog(QtWidgets.QDialog):
                     errors.append(f"[{pkey}] {key}: {exc}")
             # Merge with existing profile data (preserve keys not in _FIELDS)
             existing = dict(profiles.get(pkey, {}))
-            existing.update(p_updates)
+            # Handle nested keys (e.g. "fiber_geometry.path")
+            nested_updates = {}
+            flat_updates   = {}
+            for k, v in p_updates.items():
+                if "." in k:
+                    parent, child = k.split(".", 1)
+                    nested_updates.setdefault(parent, {})[child] = v
+                else:
+                    flat_updates[k] = v
+            existing.update(flat_updates)
+            for parent, children in nested_updates.items():
+                if parent not in existing or not isinstance(existing[parent], dict):
+                    existing[parent] = {}
+                existing[parent].update(children)
             updated_profiles[pkey] = existing
 
         if errors:

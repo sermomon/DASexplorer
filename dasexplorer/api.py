@@ -152,6 +152,11 @@ class DASdataset(_DASRecord):
             downsample=downsample if downsample is not None else self.downsample,
             metadata=meta,
             units=self.units,
+            coords_lon=self.coords_lon,
+            coords_lat=self.coords_lat,
+            coords_z=self.coords_z,
+            coords_dist=self.coords_dist,
+            crs=self.crs,
         )
 
     # ── Processing methods ────────────────────────────────────────────────────
@@ -633,6 +638,11 @@ class DASdataset(_DASRecord):
             channel_offset=ds.channel_offset,
             metadata=dict(ds.metadata),
             units=ds.units,
+            coords_lon=getattr(ds, "coords_lon", None),
+            coords_lat=getattr(ds, "coords_lat", None),
+            coords_z=getattr(ds, "coords_z", None),
+            coords_dist=getattr(ds, "coords_dist", None),
+            crs=getattr(ds, "crs", None),
         )
 
     def __repr__(self) -> str:

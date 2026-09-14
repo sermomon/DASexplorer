@@ -1,0 +1,39 @@
+{
+    "OpenStreetMap": {
+        "tiles": "OpenStreetMap",
+        "attr": null,
+        "type": "xyz",
+        "description": "Standard OpenStreetMap tiles"
+    },
+    "Satellite (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        "type": "xyz",
+        "description": "Esri World Imagery satellite tiles"
+    },
+    "Ocean (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, Esri",
+        "type": "xyz",
+        "description": "Esri Ocean basemap with GEBCO bathymetry"
+    },
+    "Bathymetry (GEBCO WMS)": {
+        "tiles": "https://wms.gebco.net/mapserv?",
+        "attr": "GEBCO 2024",
+        "type": "wms",
+        "layers": "GEBCO_LATEST",
+        "description": "GEBCO 2024 official WMS bathymetry"
+    },
+    "Natural Earth": {
+        "tiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "attr": "&copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Natural Earth / OpenStreetMap tiles"
+    },
+    "Topo (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community",
+        "type": "xyz",
+        "description": "Esri World Topo Map"
+    }
+}

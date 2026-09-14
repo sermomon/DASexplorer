@@ -38,6 +38,8 @@ def main():
 
     # Auto adaptation to screen sizes
     from PyQt5 import QtCore
+    # Required for QWebEngineView — must be set before QApplication
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts, True)
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 

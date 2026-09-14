@@ -214,3 +214,30 @@ def get_reader_defaults(reader: str) -> dict:
             return {**_PROFILE_DEFAULTS, **{k: v for k, v in p.items()
                                             if not k.startswith("_")}}
     return dict(_PROFILE_DEFAULTS)
+
+
+def get_fiber_geometry(profile: str = None) -> dict:
+    """Return the fiber_geometry config for a profile.
+
+    Parameters
+    ----------
+    profile : str, optional
+        Profile key. If None, uses the default profile.
+
+    Returns
+    -------
+    dict
+        Keys: ``path`` (str or None), ``format`` (str), ``load_on_open`` (bool).
+    """
+    cfg = _load()
+    if profile is None:
+        profile = cfg.get("default_profile", "")
+    profiles = cfg.get("profiles", {})
+    prof = profiles.get(profile, {})
+    default = {"path": None, "format": "auto", "load_on_open": False}
+    geom = prof.get("fiber_geometry", default)
+    return {
+        "path":         geom.get("path", None),
+        "format":       geom.get("format", "auto"),
+        "load_on_open": bool(geom.get("load_on_open", False)),
+    }

@@ -81,7 +81,12 @@ def generate_synthetic_dataset(
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
 
-def read_das_file(path: str, reader: str, **kwargs) -> _DASRecord:
+def read_das_file(path: str, reader: str,
+                  geometry_path: str = None,
+                  geometry_fmt: str = "auto",
+                  geometry_offset_m: float = 0.0,
+                  load_geometry: bool = False,
+                  **kwargs) -> _DASRecord:
     """
     Dispatch to the appropriate reader function.
 
@@ -91,6 +96,13 @@ def read_das_file(path: str, reader: str, **kwargs) -> _DASRecord:
         Path to the DAS file.
     reader : str
         Key from the READERS dict (e.g. "hdas2.5_v1").
+    geometry_path : str, optional
+        Path to a geometry file (GeoJSON, Shapefile, CSV, TXT).
+    geometry_fmt : str
+        Format of the geometry file. Default 'auto'.
+    load_geometry : bool
+        If True and geometry_path is given, load and attach
+        geographic coordinates to the dataset. Default False.
     **kwargs
         Forwarded to the specific reader function.
 
@@ -105,6 +117,32 @@ def read_das_file(path: str, reader: str, **kwargs) -> _DASRecord:
         )
     from dasexplorer.api import DASdataset as _DS
     raw = READERS[reader](path, **kwargs)
+    if load_geometry and geometry_path:
+        import dataclasses
+        from dasexplorer.core.geometry import (
+            load_geometry as _load_geom,
+            interpolate_geometry_to_channels,
+        )
+        try:
+            geom    = _load_geom(geometry_path, fmt=geometry_fmt)
+            geom_ch = interpolate_geometry_to_channels(
+                geom, raw.dist_m,
+                geometry_offset_m=geometry_offset_m
+            )
+            raw     = dataclasses.replace(
+                raw,
+                coords_lon=geom_ch.lons,
+                coords_lat=geom_ch.lats,
+                coords_z=geom_ch.elevs,
+                coords_dist=geom_ch.dist_m,
+                crs=geom_ch.crs,
+            )
+        except Exception as _e:
+            import warnings
+            warnings.warn(
+                f"Could not load geometry from '{geometry_path}': {_e}",
+                UserWarning, stacklevel=2,
+            )
     if isinstance(raw, _DS):
         return raw
     return _DS.from_dataset(raw)
