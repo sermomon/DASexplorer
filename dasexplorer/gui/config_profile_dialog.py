@@ -128,10 +128,12 @@ _FIELDS = [
      "Set to false to avoid the loading delay (toggle via Fiber Map dock).",
      "bool"),
     ("fiber_geometry.geometry_offset_m", "Geometry offset [m]",
-     "Distance offset between the data origin (channel 0) and the geometry\n"
-     "origin (first GeoJSON point). Positive: geometry starts after data\n"
-     "origin (e.g. 5000 if cable has 5 km on land before the GeoJSON).\n"
-     "Negative: geometry starts before data origin.",
+     "Distance in metres from channel 0 of the interrogator to the first\n"
+     "point of the geometry file.\n"
+     "Positive: the geometry starts after the interrogator\n"
+     "(e.g. 5000 if there are 5 km of cable on land before the GeoJSON).\n"
+     "Zero: the geometry starts at the interrogator (most common case).\n"
+     "Negative: the geometry starts before the interrogator.",
      "float"),
 ]
 

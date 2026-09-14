@@ -860,7 +860,8 @@ class MainWindow(QtWidgets.QMainWindow):
             geom    = load_geometry(_fg_path, fmt=_fg_fmt)
             geom_ch = interpolate_geometry_to_channels(
                 geom, self.dataset.dist_m,
-                geometry_offset_m=_fg_offset
+                geometry_offset_m=_fg_offset,
+                warn=False
             )
             self._geom_full = geom
             self.dataset = dataclasses.replace(
@@ -926,13 +927,27 @@ class MainWindow(QtWidgets.QMainWindow):
                 full_lats = (self._geom_full.lats
                              if self._geom_full is not None
                              else ds.coords_lat)
-                show_dual = self._geom_full is not None
+                show_dual   = self._geom_full is not None
+                _map_offset = 0.0
+                if show_dual:
+                    try:
+                        from dasexplorer.core.config import get_all_profiles as _gap_mo, get_profile as _gp_mo
+                        _pkeys_mo = list(_gap_mo().keys())
+                        _pidx_mo  = self.combo_reader.currentIndex()
+                        _pkey_mo  = _pkeys_mo[_pidx_mo] if _pidx_mo < len(_pkeys_mo) else _pkeys_mo[0]
+                        _fg_mo    = _gp_mo(_pkey_mo).get("fiber_geometry", {})
+                        _map_offset = float(_fg_mo.get("geometry_offset_m", 0.0))
+                    except Exception:
+                        _map_offset = 0.0
                 html = build_fiber_map(
                     coords_lon=full_lons,
                     coords_lat=full_lats,
                     coords_z=ds.coords_z,
                     sensed_lon=ds.coords_lon if show_dual else None,
                     sensed_lat=ds.coords_lat if show_dual else None,
+                    sensed_dist_m=ds.dist_m if show_dual else None,
+                    sensed_coords_dist=ds.coords_dist if show_dual else None,
+                    geometry_offset_m=_map_offset if show_dual else 0.0,
                     line_color=self._map_line_color,
                     full_cable_color=self._map_full_cable_color,
                     basemap=self.combo_basemap.currentText(),

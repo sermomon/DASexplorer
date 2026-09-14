@@ -127,7 +127,8 @@ def read_das_file(path: str, reader: str,
             geom    = _load_geom(geometry_path, fmt=geometry_fmt)
             geom_ch = interpolate_geometry_to_channels(
                 geom, raw.dist_m,
-                geometry_offset_m=geometry_offset_m
+                geometry_offset_m=geometry_offset_m,
+                warn=False
             )
             raw     = dataclasses.replace(
                 raw,

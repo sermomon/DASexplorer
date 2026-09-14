@@ -64,6 +64,9 @@ def build_fiber_map(
     coords_z=None,
     sensed_lon=None,
     sensed_lat=None,
+    sensed_dist_m=None,
+    sensed_coords_dist=None,
+    geometry_offset_m: float = 0.0,
     line_color: str = "#ff2222",
     full_cable_color: str = "#444444",
     line_weight: int = 3,
@@ -219,27 +222,48 @@ def build_fiber_map(
         ).add_to(m)
         draw_lons, draw_lats = lons, lats
 
-    # Endpoint markers on the active (sensed) line
+    # Markers at Data start and Data end (first and last sensed channel)
     if show_endpoints and len(draw_lons) >= 2:
-        for idx, label in [(0, "Sensed start" if has_sensed else "Cable start"),
-                           (-1, "Sensed end" if has_sensed else "Cable end")]:
-            popup_lines = [
-                f"<b>{label}</b>",
-                f"Lon: {draw_lons[idx]:.5f}°",
-                f"Lat: {draw_lats[idx]:.5f}°",
-            ]
-            if coords_z is not None and not has_sensed:
-                zs = np.asarray(coords_z, dtype=np.float64)
-                popup_lines.append(f"Z: {zs[idx]:.1f} m")
+        s_dist  = (np.asarray(sensed_dist_m, dtype=np.float64)
+                   if sensed_dist_m is not None else None)
+        zs = (np.asarray(coords_z, dtype=np.float64)
+              if coords_z is not None else None)
+        # Use sensed line coords for marker positions
+        s_lons = np.asarray(sensed_lon) if has_sensed else lons
+        s_lats = np.asarray(sensed_lat) if has_sensed else lats
+        n_ch   = len(s_lons)
+
+        for idx, label in [(0, "Data start"), (-1, "Data end")]:
+            popup_lines = [f"<b>{label}</b>"]
+            popup_lines.append(f"Lon: {s_lons[idx]:.5f}°")
+            popup_lines.append(f"Lat: {s_lats[idx]:.5f}°")
+            # Depth/elev from coords_z if available
+            if zs is not None and len(zs) == len(s_lons):
+                z_val = float(zs[0] if idx == 0 else zs[-1])
+                popup_lines.append(f"Depth/elev: {z_val:.1f} m")
+            # Data dist = dist_m value at this channel
+            if s_dist is not None:
+                d_km = s_dist[0]/1000 if idx == 0 else s_dist[-1]/1000
+                popup_lines.append(f"Data dist: {d_km:.2f} km")
+            # Geometry dist = data dist - geometry_offset_m
+            geom_d_km = ((s_dist[0] - geometry_offset_m) / 1000
+                         if (idx == 0 and s_dist is not None)
+                         else (s_dist[-1] - geometry_offset_m) / 1000
+                         if s_dist is not None else None)
+            if geom_d_km is not None:
+                popup_lines.append(f"Geometry dist: {max(geom_d_km, 0):.2f} km")
+            # Channel index
+            ch_num = 0 if idx == 0 else n_ch - 1
+            popup_lines.append(f"Channel: {ch_num} of {n_ch - 1}")
             folium.CircleMarker(
-                location=[float(draw_lats[idx]), float(draw_lons[idx])],
+                location=[float(s_lats[idx]), float(s_lons[idx])],
                 radius=3,
                 color=line_color,
                 fill=True,
                 fill_color=line_color,
                 fill_opacity=0.9,
                 weight=1.5,
-                popup=folium.Popup("<br>".join(popup_lines), max_width=200),
+                popup=folium.Popup("<br>".join(popup_lines), max_width=220),
                 tooltip=label,
             ).add_to(m)
 

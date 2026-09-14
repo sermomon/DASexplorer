@@ -289,6 +289,7 @@ def interpolate_geometry_to_channels(
     geom: FiberGeometry,
     dist_das: np.ndarray,
     geometry_offset_m: float = 0.0,
+    warn: bool = True,
 ) -> FiberGeometry:
     """Interpolate geometry to the DAS channel distance axis.
 
@@ -315,9 +316,36 @@ def interpolate_geometry_to_channels(
         New FiberGeometry with coordinates interpolated at every
         channel position in ``dist_das``.
     """
+    import warnings
     d_src = geom.dist_m
     # Shift data distances into geometry coordinate system
     dist_shifted = dist_das - geometry_offset_m
+
+    # Warn if any channels fall before the geometry start
+    n_before = int(np.sum(dist_shifted < d_src[0]))
+    if warn and n_before > 0:
+        warnings.warn(
+            f"{n_before} channel(s) have distances below the geometry start "
+            f"(dist_das[0]={dist_das[0]:.0f} m, "
+            f"geometry_offset_m={geometry_offset_m:.0f} m, "
+            f"geometry_start={d_src[0]:.0f} m after offset). "
+            "Coordinates for those channels will be extrapolated "
+            "from the first geometry point and may not be reliable. "
+            "Consider increasing geometry_offset_m.",
+            UserWarning, stacklevel=2
+        )
+
+    # Warn if any channels fall beyond the geometry end
+    n_after = int(np.sum(dist_shifted > d_src[-1]))
+    if warn and n_after > 0:
+        warnings.warn(
+            f"{n_after} channel(s) have distances beyond the geometry end "
+            f"(dist_das[-1]={dist_das[-1]:.0f} m, "
+            f"geometry_end={d_src[-1] + geometry_offset_m:.0f} m). "
+            "Coordinates for those channels will be extrapolated "
+            "from the last geometry point and may not be reliable.",
+            UserWarning, stacklevel=2
+        )
 
     lons_i  = np.interp(dist_shifted, d_src, geom.lons)
     lats_i  = np.interp(dist_shifted, d_src, geom.lats)

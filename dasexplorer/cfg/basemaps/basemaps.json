@@ -1,39 +1,201 @@
 {
     "OpenStreetMap": {
-        "tiles": "OpenStreetMap",
-        "attr": null,
+        "tiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "attr": "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
         "type": "xyz",
-        "description": "Standard OpenStreetMap tiles"
+        "description": "Standard OpenStreetMap — free, no key"
+    },
+    "OSM HOT": {
+        "tiles": "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+        "attr": "&copy; OpenStreetMap contributors, Tiles by Humanitarian OpenStreetMap Team",
+        "type": "xyz",
+        "description": "Humanitarian OSM — warm style, free, no key"
+    },
+    "OpenTopoMap": {
+        "tiles": "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        "attr": "Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)",
+        "type": "xyz",
+        "description": "Topographic map — free, no key"
+    },
+    "CyclOSM": {
+        "tiles": "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+        "attr": "CyclOSM | Map data: &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Cycling-oriented OSM style — free, no key"
+    },
+    "Light Gray Canvas (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+        "type": "xyz",
+        "description": "Esri Light Gray Canvas — clean neutral style, free, no key"
+    },
+    "Dark Gray Canvas (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+        "type": "xyz",
+        "description": "Esri Dark Gray Canvas — dark neutral style, free, no key"
     },
     "Satellite (Esri)": {
         "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        "attr": "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        "attr": "Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA",
         "type": "xyz",
-        "description": "Esri World Imagery satellite tiles"
+        "description": "Esri World Imagery satellite — free, no key"
     },
     "Ocean (Esri)": {
         "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
         "attr": "Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, Esri",
         "type": "xyz",
-        "description": "Esri Ocean basemap with GEBCO bathymetry"
+        "description": "Esri Ocean basemap with GEBCO bathymetry — free, no key"
+    },
+    "Topo (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS",
+        "type": "xyz",
+        "description": "Esri World Topo Map — free, no key"
+    },
+    "NatGeo (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI",
+        "type": "xyz",
+        "description": "National Geographic style — free, no key"
+    },
+    "Physical (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Source: US National Park Service",
+        "type": "xyz",
+        "description": "Esri World Physical map — free, no key"
+    },
+    "Shaded Relief (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Source: Esri",
+        "type": "xyz",
+        "description": "Esri shaded relief — free, no key"
+    },
+    "Terrain (Esri)": {
+        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles &copy; Esri &mdash; Source: USGS, Esri, TANA, DeLorme, NPS",
+        "type": "xyz",
+        "description": "Esri World Terrain Base — free, no key"
     },
     "Bathymetry (GEBCO WMS)": {
         "tiles": "https://wms.gebco.net/mapserv?",
         "attr": "GEBCO 2024",
         "type": "wms",
         "layers": "GEBCO_LATEST",
-        "description": "GEBCO 2024 official WMS bathymetry"
+        "description": "GEBCO 2024 official WMS bathymetry — free, no key"
     },
-    "Natural Earth": {
-        "tiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "attr": "&copy; OpenStreetMap contributors",
+    "OpenSeaMap": {
+        "tiles": "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",
+        "attr": "Map data: &copy; <a href='http://www.openseamap.org'>OpenSeaMap</a> contributors",
         "type": "xyz",
-        "description": "Natural Earth / OpenStreetMap tiles"
+        "description": "Nautical chart overlay — free, no key"
     },
-    "Topo (Esri)": {
-        "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-        "attr": "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community",
+    "USGS Topo": {
+        "tiles": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles courtesy of the U.S. Geological Survey",
         "type": "xyz",
-        "description": "Esri World Topo Map"
+        "description": "USGS topographic map (USA) — free, no key"
+    },
+    "USGS Imagery": {
+        "tiles": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+        "attr": "Tiles courtesy of the U.S. Geological Survey",
+        "type": "xyz",
+        "description": "USGS satellite imagery (USA) — free, no key"
+    },
+    "NASA VIIRS Night": {
+        "tiles": "https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg",
+        "attr": "Imagery provided by NASA/GSFC/Earth Science Data and Information System (ESDIS)",
+        "type": "xyz",
+        "description": "NASA Earth at Night 2012 (VIIRS) — free, no key"
+    },
+    "GeoportailFrance": {
+        "tiles": "https://data.geopf.fr/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+        "attr": "Geoportail France",
+        "type": "xyz",
+        "description": "IGN France official topographic map — free, no key"
+    },
+    "BaseMapDE Color": {
+        "tiles": "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
+        "attr": "Map data: &copy; dl-de/by-2-0",
+        "type": "xyz",
+        "description": "German federal basemap (color) — free, no key"
+    },
+    "BaseMapDE Grey": {
+        "tiles": "https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_grau/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png",
+        "attr": "Map data: &copy; dl-de/by-2-0",
+        "type": "xyz",
+        "description": "German federal basemap (grey) — free, no key"
+    },
+    "TopPlusOpen Color": {
+        "tiles": "https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web/default/WEBMERCATOR/{z}/{y}/{x}.png",
+        "attr": "Map data: &copy; dl-de/by-2-0",
+        "type": "xyz",
+        "description": "BKG TopPlus open color — free, no key"
+    },
+    "TopPlusOpen Grey": {
+        "tiles": "https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web_grau/default/WEBMERCATOR/{z}/{y}/{x}.png",
+        "attr": "Map data: &copy; dl-de/by-2-0",
+        "type": "xyz",
+        "description": "BKG TopPlus open grey — free, no key"
+    },
+    "Stadia Smooth Dark [API KEY]": {
+        "tiles": "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key=INSERT_KEY",
+        "attr": "&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Stadia Alidade Smooth Dark — REQUIRES API KEY from stadiamaps.com (free plan available)"
+    },
+    "Stadia Smooth [API KEY]": {
+        "tiles": "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png?api_key=INSERT_KEY",
+        "attr": "&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Stadia Alidade Smooth Light — REQUIRES API KEY from stadiamaps.com (free plan available)"
+    },
+    "Stadia OSM Bright [API KEY]": {
+        "tiles": "https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png?api_key=INSERT_KEY",
+        "attr": "&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Stadia OSM Bright — REQUIRES API KEY from stadiamaps.com (free plan available)"
+    },
+    "Stadia Stamen Toner [API KEY]": {
+        "tiles": "https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png?api_key=INSERT_KEY",
+        "attr": "&copy; Stadia Maps &copy; Stamen Design &copy; OpenMapTiles &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Stamen Toner (B&W) — REQUIRES API KEY from stadiamaps.com (free plan available)"
+    },
+    "Stadia Stamen Watercolor [API KEY]": {
+        "tiles": "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg?api_key=INSERT_KEY",
+        "attr": "&copy; Stadia Maps &copy; Stamen Design &copy; OpenMapTiles &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Stamen Watercolor artistic style — REQUIRES API KEY from stadiamaps.com (free plan available)"
+    },
+    "CartoDB Dark [API KEY]": {
+        "tiles": "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?apikey=INSERT_KEY",
+        "attr": "&copy; OpenStreetMap contributors &copy; CARTO",
+        "type": "xyz",
+        "description": "CartoDB Dark Matter — REQUIRES API KEY from carto.com (free plan available)"
+    },
+    "CartoDB Light [API KEY]": {
+        "tiles": "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?apikey=INSERT_KEY",
+        "attr": "&copy; OpenStreetMap contributors &copy; CARTO",
+        "type": "xyz",
+        "description": "CartoDB Positron — REQUIRES API KEY from carto.com (free plan available)"
+    },
+    "Jawg Dark [API KEY]": {
+        "tiles": "https://tile.jawg.io/jawg-dark/{z}/{x}/{y}.png?access-token=INSERT_KEY",
+        "attr": "&copy; Jawg Maps &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Jawg Dark style — REQUIRES API KEY from jawg.io (free plan available)"
+    },
+    "Jawg Light [API KEY]": {
+        "tiles": "https://tile.jawg.io/jawg-light/{z}/{x}/{y}.png?access-token=INSERT_KEY",
+        "attr": "&copy; Jawg Maps &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Jawg Light style — REQUIRES API KEY from jawg.io (free plan available)"
+    },
+    "Jawg Matrix [API KEY]": {
+        "tiles": "https://tile.jawg.io/jawg-matrix/{z}/{x}/{y}.png?access-token=INSERT_KEY",
+        "attr": "&copy; Jawg Maps &copy; OpenStreetMap contributors",
+        "type": "xyz",
+        "description": "Jawg Matrix green-on-dark style — REQUIRES API KEY from jawg.io (free plan available)"
     }
 }

@@ -34,8 +34,8 @@
             "rgb_bmin_hz": 15.0,
             "rgb_bmax_hz": 40.0,
             "rgb_percentile": 90.0,
-            "read_dmin_m": null,
-            "read_dmax_m": 30000.0,
+            "read_dmin_m": 15000.0,
+            "read_dmax_m": 40000.0,
             "reader": "hdas2.5_v1",
             "fiber_geometry": {
                 "path": "C:/Users/sermomon/Desktop/f/alme.geojson",
