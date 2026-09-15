@@ -38,10 +38,10 @@
             "read_dmax_m": 40000.0,
             "reader": "hdas2.5_v1",
             "fiber_geometry": {
-                "path": "C:/Users/sermomon/Desktop/f/alme.geojson",
+                "path": null,
                 "format": "auto",
                 "load_on_open": true,
-                "geometry_offset_m": 5000.0
+                "geometry_offset_m": 0.0
             }
         },
         "optasense_v1": {
@@ -82,7 +82,7 @@
             "fiber_geometry": {
                 "path": null,
                 "format": "auto",
-                "load_on_open": false,
+                "load_on_open": true,
                 "geometry_offset_m": 0.0
             }
         },
@@ -124,7 +124,7 @@
             "fiber_geometry": {
                 "path": null,
                 "format": "auto",
-                "load_on_open": false,
+                "load_on_open": true,
                 "geometry_offset_m": 0.0
             }
         },
@@ -166,7 +166,7 @@
             "fiber_geometry": {
                 "path": null,
                 "format": "auto",
-                "load_on_open": false,
+                "load_on_open": true,
                 "geometry_offset_m": 0.0
             }
         },
@@ -208,7 +208,7 @@
             "fiber_geometry": {
                 "path": null,
                 "format": "auto",
-                "load_on_open": false,
+                "load_on_open": true,
                 "geometry_offset_m": 0.0
             }
         }
@@ -220,26 +220,10 @@
         "left_panel_scroll": false,
         "compact_spinboxes": false,
         "annotation_colors": {
-            "bbox": [
-                255,
-                255,
-                255
-            ],
-            "obb": [
-                255,
-                255,
-                255
-            ],
-            "kp": [
-                255,
-                255,
-                255
-            ],
-            "line": [
-                255,
-                255,
-                255
-            ]
+            "bbox": [255,255,255],
+            "obb": [255,255,255],
+            "kp": [255,255,255],
+            "line": [255,255,255]
         }
     }
 }

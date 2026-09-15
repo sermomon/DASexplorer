@@ -759,8 +759,8 @@ class MainWindow(QtWidgets.QMainWindow):
             for name in BASEMAPS:
                 self.combo_basemap.addItem(name)
         except ImportError:
-            self.combo_basemap.addItem("OpenStreetMap")
-        osm_idx = self.combo_basemap.findText("OpenStreetMap")
+            self.combo_basemap.addItem("Dark Gray Canvas (Esri)")
+        osm_idx = self.combo_basemap.findText("Dark Gray Canvas (Esri)")
         if osm_idx >= 0:
             self.combo_basemap.setCurrentIndex(osm_idx)
         self.combo_basemap.blockSignals(False)
@@ -794,6 +794,22 @@ class MainWindow(QtWidgets.QMainWindow):
         toolbar.addSpacing(4)
         toolbar.addWidget(lbl_full_color)
         toolbar.addWidget(self.btn_map_full_color)
+        toolbar.addSpacing(12)
+        lbl_offset = QtWidgets.QLabel("Offset [m]:")
+        self.spin_map_offset = QtWidgets.QDoubleSpinBox()
+        self.spin_map_offset.setRange(-999999.0, 999999.0)
+        self.spin_map_offset.setDecimals(0)
+        self.spin_map_offset.setSingleStep(100.0)
+        self.spin_map_offset.setValue(0.0)
+        self.spin_map_offset.setMinimumWidth(90)
+        self.spin_map_offset.setToolTip(
+            "Distance in metres from channel 0 of the interrogator\n"
+            "to the first point of the geometry file.\n"
+            "Positive: geometry starts after the interrogator.\n"
+            "Negative: geometry starts before the interrogator."
+        )
+        toolbar.addWidget(lbl_offset)
+        toolbar.addWidget(self.spin_map_offset)
         toolbar.addStretch()
 
         toolbar_widget = QtWidgets.QWidget()
@@ -854,13 +870,38 @@ class MainWindow(QtWidgets.QMainWindow):
             _fg_path   = _fg_cfg.get("path") if isinstance(_fg_cfg, dict) else None
             _fg_fmt    = _fg_cfg.get("format", "auto") if isinstance(_fg_cfg, dict) else "auto"
             _fg_offset = float(_fg_cfg.get("geometry_offset_m", 0.0)) if isinstance(_fg_cfg, dict) else 0.0
+            # Sync spinbox with config offset (user can override)
+            self.spin_map_offset.setValue(_fg_offset)
+            # No path in config — open file dialog for temporary session load
             if not _fg_path:
-                self._status_error("No geometry path set in profile configuration.")
-                return
+                _fg_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                    self,
+                    "Load geometry file",
+                    "",
+                    "Geometry files (*.geojson *.json *.shp *.csv *.txt *.xyz *.dat)"
+                    ";;GeoJSON (*.geojson *.json)"
+                    ";;Shapefile (*.shp)"
+                    ";;CSV (*.csv)"
+                    ";;TXT / XYZ (*.txt *.xyz *.dat)"
+                    ";;All files (*.*)",
+                )
+                # Restore window to foreground after file dialog
+                self.fiber_map_win.raise_()
+                self.fiber_map_win.activateWindow()
+                if not _fg_path:
+                    # User cancelled — uncheck the button
+                    self.btn_map_load_geom.blockSignals(True)
+                    self.btn_map_load_geom.setChecked(False)
+                    self.btn_map_load_geom.setText("Load geometry")
+                    self.btn_map_load_geom.blockSignals(False)
+                    return
+                _fg_fmt = "auto"
             geom    = load_geometry(_fg_path, fmt=_fg_fmt)
+            # Use spinbox value — user may have overridden the config offset
+            _offset_to_use = self.spin_map_offset.value()
             geom_ch = interpolate_geometry_to_channels(
                 geom, self.dataset.dist_m,
-                geometry_offset_m=_fg_offset,
+                geometry_offset_m=_offset_to_use,
                 warn=False
             )
             self._geom_full = geom
@@ -876,10 +917,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 f"Geometry loaded: {geom.n_points} points, "
                 f"{geom.total_length_m/1000:.1f} km", 5000
             )
+            self.fiber_map_win.raise_()
+            self.fiber_map_win.activateWindow()
         except FileNotFoundError as e:
             self._status_error(f"Geometry file not found: {e}")
+            self.fiber_map_win.raise_()
         except Exception as e:
             self._status_error(f"Geometry load error: {e}")
+            self.fiber_map_win.raise_()
 
     def _on_map_color_pick(self) -> None:
         color = QtWidgets.QColorDialog.getColor(
@@ -928,17 +973,8 @@ class MainWindow(QtWidgets.QMainWindow):
                              if self._geom_full is not None
                              else ds.coords_lat)
                 show_dual   = self._geom_full is not None
-                _map_offset = 0.0
-                if show_dual:
-                    try:
-                        from dasexplorer.core.config import get_all_profiles as _gap_mo, get_profile as _gp_mo
-                        _pkeys_mo = list(_gap_mo().keys())
-                        _pidx_mo  = self.combo_reader.currentIndex()
-                        _pkey_mo  = _pkeys_mo[_pidx_mo] if _pidx_mo < len(_pkeys_mo) else _pkeys_mo[0]
-                        _fg_mo    = _gp_mo(_pkey_mo).get("fiber_geometry", {})
-                        _map_offset = float(_fg_mo.get("geometry_offset_m", 0.0))
-                    except Exception:
-                        _map_offset = 0.0
+                # Use spinbox value — reflects both config and user override
+                _map_offset = self.spin_map_offset.value() if show_dual else 0.0
                 html = build_fiber_map(
                     coords_lon=full_lons,
                     coords_lat=full_lats,
