@@ -984,6 +984,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     sensed_dist_m=ds.dist_m if show_dual else None,
                     sensed_coords_dist=ds.coords_dist if show_dual else None,
                     geometry_offset_m=_map_offset if show_dual else 0.0,
+                    channel_offset=int(ds.channel_offset or 0),
+                    channel_stride=int(ds.channel_stride or 1),
                     line_color=self._map_line_color,
                     full_cable_color=self._map_full_cable_color,
                     basemap=self.combo_basemap.currentText(),

@@ -67,6 +67,8 @@ def build_fiber_map(
     sensed_dist_m=None,
     sensed_coords_dist=None,
     geometry_offset_m: float = 0.0,
+    channel_offset: int = 0,
+    channel_stride: int = 1,
     line_color: str = "#ff2222",
     full_cable_color: str = "#444444",
     line_weight: int = 3,
@@ -252,9 +254,11 @@ def build_fiber_map(
                          if s_dist is not None else None)
             if geom_d_km is not None:
                 popup_lines.append(f"Geometry dist: {max(geom_d_km, 0):.2f} km")
-            # Channel index
-            ch_num = 0 if idx == 0 else n_ch - 1
-            popup_lines.append(f"Channel: {ch_num} of {n_ch - 1}")
+            # Original cable channel = local_index * stride + offset
+            local_idx = 0 if idx == 0 else n_ch - 1
+            ch_orig   = local_idx * channel_stride + channel_offset
+            ch_end    = (n_ch - 1) * channel_stride + channel_offset
+            popup_lines.append(f"Channel: {ch_orig} of {ch_end}")
             folium.CircleMarker(
                 location=[float(s_lats[idx]), float(s_lons[idx])],
                 radius=3,
